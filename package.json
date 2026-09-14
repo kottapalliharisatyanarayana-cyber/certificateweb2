@@ -8,6 +8,9 @@
     "start": "node server/app.js",
     "dev": "node server/app.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "keywords": [
     "certificate",
     "generator",

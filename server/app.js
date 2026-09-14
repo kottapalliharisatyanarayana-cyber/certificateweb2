@@ -213,7 +213,7 @@ const listenOnPort = (server, port, maxAttempts = 5) => {
 
     const tryListen = () => {
       attempts++;
-      server.listen(currentPort);
+      server.listen(currentPort, '0.0.0.0');
     };
 
     server.once('listening', () => {
