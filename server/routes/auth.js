@@ -103,4 +103,131 @@ router.post('/change-password', authMiddleware, async (req, res) => {
   }
 });
 
+// PUT & POST /api/auth/change-credentials
+const handleChangeCredentials = async (req, res) => {
+  try {
+    const { currentPassword, newUsername, newPassword } = req.body;
+
+    if (!currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is required to confirm identity.'
+      });
+    }
+
+    if (!newUsername && !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a new username or new password to update.'
+      });
+    }
+
+    const admin = await Admin.findById(req.admin._id);
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin account not found.'
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, admin.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect.'
+      });
+    }
+
+    let usernameChanged = false;
+    let passwordChanged = false;
+
+    if (newUsername) {
+      const cleanUsername = String(newUsername).trim().toLowerCase();
+      if (cleanUsername.length < 3) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username must be at least 3 characters long.'
+        });
+      }
+
+      if (!/^[a-zA-Z0-9_.-]+$/.test(cleanUsername)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username may only contain letters, numbers, hyphens, dots, and underscores.'
+        });
+      }
+
+      // Check if username is already taken by another admin
+      const existing = await Admin.findOne({
+        username: cleanUsername,
+        _id: { $ne: admin._id }
+      });
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: `Username "${cleanUsername}" is already in use by another administrator.`
+        });
+      }
+
+      if (admin.username !== cleanUsername) {
+        admin.username = cleanUsername;
+        usernameChanged = true;
+      }
+    }
+
+    if (newPassword) {
+      const cleanPass = String(newPassword);
+      if (cleanPass.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'New password must be at least 6 characters long.'
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      admin.password_hash = await bcrypt.hash(cleanPass, salt);
+      passwordChanged = true;
+    }
+
+    if (!usernameChanged && !passwordChanged) {
+      return res.status(400).json({
+        success: false,
+        message: 'No changes detected. The new credentials are identical to current credentials.'
+      });
+    }
+
+    await admin.save();
+
+    const secret = process.env.JWT_SECRET || 'super_secret_certificate_jwt_key_2026';
+    const newToken = jwt.sign(
+      { id: admin._id, username: admin.username },
+      secret,
+      { expiresIn: '7d' }
+    );
+
+    let messageParts = [];
+    if (usernameChanged) messageParts.push('username');
+    if (passwordChanged) messageParts.push('password');
+
+    res.json({
+      success: true,
+      message: `Admin ${messageParts.join(' and ')} updated successfully!`,
+      token: newToken,
+      user: {
+        id: admin._id,
+        username: admin.username
+      }
+    });
+  } catch (err) {
+    console.error('Credentials update error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update credentials: ' + err.message
+    });
+  }
+};
+
+router.put('/change-credentials', authMiddleware, handleChangeCredentials);
+router.post('/change-credentials', authMiddleware, handleChangeCredentials);
+
 module.exports = router;

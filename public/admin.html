@@ -22,6 +22,7 @@
       <div class="nav-links">
         <span id="dbStatusBadge" class="badge badge-success" style="display: none;">● DB Connected</span>
         <a href="/" class="nav-btn nav-btn-ghost">🎓 Student View</a>
+        <button id="securityNavBtn" class="nav-btn nav-btn-ghost" style="display: none;" onclick="switchTab('credentials')">🔑 Admin Security</button>
         <button id="logoutBtn" class="nav-btn nav-btn-ghost" style="display: none;" onclick="handleLogout()">🚪 Logout</button>
       </div>
     </div>
@@ -39,21 +40,19 @@
       <form onsubmit="handleLogin(event)">
         <div class="form-group">
           <label class="form-label" for="username">Username</label>
-          <input type="text" id="username" class="form-control" placeholder="admin" required autofocus>
+          <input type="text" id="username" class="form-control" placeholder="Enter username" required autofocus autocomplete="username">
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
-          <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+          <div class="password-input-group">
+            <input type="password" id="password" class="form-control" placeholder="Enter password" required autocomplete="current-password">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="Toggle password visibility">👁️</button>
+          </div>
         </div>
         <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-block" style="padding: 0.8rem; font-weight: 700; margin-top: 1rem;">
           Sign In to Dashboard
         </button>
       </form>
-
-      <div style="margin-top: 1.25rem; padding: 0.75rem; background: var(--surface-subtle); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-muted); text-align: center;">
-        💡 Default: <strong>admin</strong> / <strong>admin123</strong>
-        <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 0.5rem; display: block; width: 100%;" onclick="quickFillAdmin()">Quick Fill Credentials</button>
-      </div>
     </div>
   </div>
 
@@ -70,6 +69,7 @@
         <li><a class="sidebar-link" onclick="switchTab('students')">👥 Manage Students</a></li>
         <li><a class="sidebar-link" onclick="switchTab('events')">🏆 Manage Events</a></li>
         <li><a class="sidebar-link" onclick="switchTab('template')">🎨 Template Studio</a></li>
+        <li><a class="sidebar-link" onclick="switchTab('credentials')">🔑 Admin Security</a></li>
       </ul>
 
       <div style="margin-top: 2rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius-sm);">
@@ -147,6 +147,14 @@
               Interactively adjust coordinates, typography, and font colors on the certificate canvas.
             </p>
             <button class="btn btn-secondary btn-sm" onclick="switchTab('template')">Open Template Studio ➔</button>
+          </div>
+
+          <div class="card">
+            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">🔑 Admin Security</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Update administrator username or password credentials securely.
+            </p>
+            <button class="btn btn-secondary btn-sm" onclick="switchTab('credentials')">Change Credentials ➔</button>
           </div>
         </div>
       </section>
@@ -528,6 +536,110 @@
           </div>
         </div>
 
+      </section>
+
+      <!-- TAB 7: ADMIN SECURITY & CREDENTIALS -->
+      <section id="tab-credentials" style="display: none;">
+        <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
+          <div>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Admin Security & Credentials</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Change your administrator username and password securely</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+          <!-- CREDENTIALS FORM CARD -->
+          <div class="card" style="box-shadow: var(--shadow-md);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--surface-border);">
+              <div>
+                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Account Credentials</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Update your login username or set a new password</p>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; font-weight: 600;">ACTIVE ACCOUNT</span>
+                <span id="currentAdminBadge" class="badge badge-primary" style="font-size: 0.85rem; padding: 0.3rem 0.65rem;">admin</span>
+              </div>
+            </div>
+
+            <form id="changeCredentialsForm" onsubmit="handleChangeCredentials(event)">
+              <!-- CURRENT PASSWORD -->
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="currentPassword">
+                  Current Password <span style="color: var(--danger);">*</span>
+                  <span style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Required to confirm your identity)</span>
+                </label>
+                <div class="password-input-group">
+                  <input type="password" id="currentPassword" class="form-control" placeholder="Enter your current password" required autocomplete="current-password">
+                  <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('currentPassword', this)" title="Toggle password visibility">👁️</button>
+                </div>
+              </div>
+
+              <div style="height: 1px; background: var(--surface-border); margin: 1.5rem 0;"></div>
+
+              <!-- NEW USERNAME -->
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="newUsername">
+                  New Admin Username
+                  <span style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Optional - leave blank to keep current)</span>
+                </label>
+                <input type="text" id="newUsername" class="form-control" placeholder="Enter new admin username" autocomplete="username">
+              </div>
+
+              <!-- NEW PASSWORD -->
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="newPassword">
+                  New Password
+                  <span style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Min. 6 characters - leave blank to keep current)</span>
+                </label>
+                <div class="password-input-group">
+                  <input type="password" id="newPassword" class="form-control" placeholder="Enter new password" autocomplete="new-password" minlength="6">
+                  <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('newPassword', this)" title="Toggle password visibility">👁️</button>
+                </div>
+              </div>
+
+              <!-- CONFIRM NEW PASSWORD -->
+              <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label" for="confirmNewPassword">Confirm New Password</label>
+                <div class="password-input-group">
+                  <input type="password" id="confirmNewPassword" class="form-control" placeholder="Re-enter new password" autocomplete="new-password">
+                  <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('confirmNewPassword', this)" title="Toggle password visibility">👁️</button>
+                </div>
+              </div>
+
+              <!-- ALERT BOX -->
+              <div id="credentialsAlertBox" style="display: none; margin-bottom: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500;"></div>
+
+              <div style="display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center;">
+                <button type="button" class="btn btn-secondary" onclick="resetCredentialsForm()">Clear</button>
+                <button type="submit" id="saveCredentialsBtn" class="btn btn-primary" style="font-weight: 700; padding: 0.7rem 1.5rem;">
+                  💾 Save New Credentials
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- SECURITY GUIDELINES CARD -->
+          <div class="card" style="background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1px solid var(--surface-border);">
+            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+              🛡️ Security & Authentication
+            </h3>
+            <ul style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.7; padding-left: 1.25rem; margin-bottom: 1.5rem;">
+              <li>Always protect your admin credentials and do not share them publicly.</li>
+              <li>Passwords are cryptographically salted and hashed using <strong>bcrypt</strong> before being stored in MongoDB Atlas.</li>
+              <li>When you update credentials, your current session JWT token automatically updates seamlessly so you don't need to log in again.</li>
+              <li>Once changed, previous passwords will be immediately invalidated.</li>
+            </ul>
+
+            <div style="padding: 1.1rem; background: var(--surface-subtle); border: 1px solid var(--surface-border); border-radius: var(--radius-sm);">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <span style="display: inline-block; width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></span>
+                <p style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">Cloud Database Active</p>
+              </div>
+              <p style="font-size: 0.875rem; color: var(--text-main); font-weight: 600;">MongoDB Atlas Cluster</p>
+              <p style="font-size: 0.775rem; color: var(--text-muted); margin-top: 0.25rem;">All credential updates take effect immediately across all connected instances.</p>
+            </div>
+          </div>
+        </div>
       </section>
 
     </main>

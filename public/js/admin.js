@@ -4,6 +4,7 @@
  */
 
 let authToken = localStorage.getItem('cert_admin_token') || null;
+let currentAdminUser = null;
 let currentTemplate = null;
 let eventsCache = [];
 let studentCurrentPage = 1;
@@ -53,11 +54,13 @@ async function checkAuth() {
     });
 
     if (res.ok && data.success) {
+      currentAdminUser = data.user;
       showDashboardView();
       loadInitialData();
     } else {
       localStorage.removeItem('cert_admin_token');
       authToken = null;
+      currentAdminUser = null;
       showLoginView();
     }
   } catch (err) {
@@ -70,6 +73,8 @@ function showLoginView() {
   document.getElementById('loginView').style.display = 'block';
   document.getElementById('dashboardView').style.display = 'none';
   document.getElementById('logoutBtn').style.display = 'none';
+  const secBtn = document.getElementById('securityNavBtn');
+  if (secBtn) secBtn.style.display = 'none';
   document.getElementById('dbStatusBadge').style.display = 'none';
 }
 
@@ -77,12 +82,9 @@ function showDashboardView() {
   document.getElementById('loginView').style.display = 'none';
   document.getElementById('dashboardView').style.display = 'grid';
   document.getElementById('logoutBtn').style.display = 'inline-flex';
-}
-
-// Quick fill helper for demonstration
-function quickFillAdmin() {
-  document.getElementById('username').value = 'admin';
-  document.getElementById('password').value = 'admin123';
+  const secBtn = document.getElementById('securityNavBtn');
+  if (secBtn) secBtn.style.display = 'inline-flex';
+  updateAdminDisplay();
 }
 
 // Handle Admin Sign In
@@ -107,6 +109,7 @@ async function handleLogin(e) {
 
     if (res.ok && data.success) {
       authToken = data.token;
+      currentAdminUser = data.user;
       localStorage.setItem('cert_admin_token', authToken);
       showToast('Welcome back, Administrator!', 'success');
       showDashboardView();
@@ -125,6 +128,7 @@ async function handleLogin(e) {
 function handleLogout() {
   localStorage.removeItem('cert_admin_token');
   authToken = null;
+  currentAdminUser = null;
   showToast('Logged out successfully', 'info');
   showLoginView();
 }
@@ -160,6 +164,10 @@ function switchTab(tabId) {
   if (tabId === 'manual') renderManualEventsCheckboxes();
   if (tabId === 'upload') populatePdfEventSelect();
   if (tabId === 'template') drawStudioPreview();
+  if (tabId === 'credentials') {
+    updateAdminDisplay();
+    resetCredentialsForm();
+  }
 }
 
 // 1. STATS
@@ -995,3 +1003,134 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+// ==========================================
+// ADMIN CREDENTIALS & SECURITY MANAGEMENT
+// ==========================================
+
+function updateAdminDisplay() {
+  const username = (currentAdminUser && currentAdminUser.username) ? currentAdminUser.username : 'admin';
+  const badge = document.getElementById('currentAdminBadge');
+  if (badge) badge.textContent = username;
+}
+
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+
+function showCredentialsAlert(message, type = 'error') {
+  const alertBox = document.getElementById('credentialsAlertBox');
+  if (!alertBox) return;
+  alertBox.textContent = message;
+  alertBox.style.display = 'block';
+
+  if (type === 'success') {
+    alertBox.style.background = '#d1fae5';
+    alertBox.style.color = '#065f46';
+    alertBox.style.border = '1px solid #a7f3d0';
+  } else {
+    alertBox.style.background = '#fee2e2';
+    alertBox.style.color = '#991b1b';
+    alertBox.style.border = '1px solid #fecaca';
+  }
+}
+
+function resetCredentialsForm() {
+  const form = document.getElementById('changeCredentialsForm');
+  if (form) form.reset();
+  const alertBox = document.getElementById('credentialsAlertBox');
+  if (alertBox) {
+    alertBox.style.display = 'none';
+    alertBox.textContent = '';
+  }
+}
+
+async function handleChangeCredentials(e) {
+  e.preventDefault();
+
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newUsername = document.getElementById('newUsername').value.trim();
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+  const submitBtn = document.getElementById('saveCredentialsBtn');
+
+  // Validation
+  if (!currentPassword) {
+    showCredentialsAlert('Please enter your current password to confirm your identity.', 'error');
+    return;
+  }
+
+  if (!newUsername && !newPassword) {
+    showCredentialsAlert('Please provide a new username or a new password to update.', 'error');
+    return;
+  }
+
+  if (newUsername && newUsername.length < 3) {
+    showCredentialsAlert('New username must be at least 3 characters long.', 'error');
+    return;
+  }
+
+  if (newPassword) {
+    if (newPassword.length < 6) {
+      showCredentialsAlert('New password must be at least 6 characters long.', 'error');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      showCredentialsAlert('New password and confirmation do not match.', 'error');
+      return;
+    }
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Updating Credentials...';
+
+  try {
+    const { res, data } = await safeFetch('/api/auth/change-credentials', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        currentPassword,
+        newUsername: newUsername || undefined,
+        newPassword: newPassword || undefined
+      })
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = '💾 Save New Credentials';
+
+    if (res.ok && data.success) {
+      if (data.token) {
+        authToken = data.token;
+        localStorage.setItem('cert_admin_token', authToken);
+      }
+      if (data.user) {
+        currentAdminUser = data.user;
+        updateAdminDisplay();
+      }
+
+      showCredentialsAlert(data.message || 'Credentials updated successfully!', 'success');
+      showToast(data.message || 'Credentials updated successfully!', 'success');
+      resetCredentialsForm();
+    } else {
+      showCredentialsAlert(data.message || 'Failed to update credentials', 'error');
+      showToast(data.message || 'Failed to update credentials', 'error');
+    }
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '💾 Save New Credentials';
+    showCredentialsAlert('Network error: ' + err.message, 'error');
+    showToast('Failed to update credentials: ' + err.message, 'error');
+  }
+}
+
