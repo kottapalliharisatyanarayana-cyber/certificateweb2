@@ -37,9 +37,9 @@ const formatUri = (rawUri) => {
 };
 
 const connectDB = async (customUri = null) => {
-  const isVercel = !!process.env.VERCEL;
+  const isCloud = !!(process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production');
   const primaryUri = formatUri(customUri || process.env.MONGODB_URI);
-  const localFallbackUri = isVercel ? null : 'mongodb://127.0.0.1:27017/certificate_db';
+  const localFallbackUri = isCloud ? null : 'mongodb://127.0.0.1:27017/certificate_db';
 
   if (!primaryUri && !localFallbackUri) {
     lastError = 'MONGODB_URI is not set. Please provide a MongoDB Atlas connection string in your environment variables.';
@@ -76,7 +76,7 @@ const connectDB = async (customUri = null) => {
       } catch (atlasErr) {
         console.warn(`⚠️ Primary MongoDB connection failed: ${atlasErr.message}`);
         cachedPromise = null;
-        if (isVercel) {
+        if (isCloud) {
           isConnected = false;
           lastError = atlasErr.message;
           return false;
