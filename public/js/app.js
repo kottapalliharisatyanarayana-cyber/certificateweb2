@@ -206,14 +206,23 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
   canvas.width = cfg.canvas_width || 1024;
   canvas.height = cfg.canvas_height || 682;
 
-  // Load template image
+  // Load template image with fallback
   const img = new Image();
   img.crossOrigin = 'anonymous';
 
   await new Promise((resolve, reject) => {
     img.onload = () => resolve();
-    img.onerror = () => reject(new Error('Failed to load certificate template image: ' + template.file));
-    img.src = template.file;
+    img.onerror = () => {
+      const fallbackSrc = '/templates/svec_template.jpg';
+      if (img.src && !img.src.includes(fallbackSrc)) {
+        console.warn('Template image failed to load, falling back to default:', template.file);
+        img.onerror = () => reject(new Error('Failed to load certificate template image: ' + template.file));
+        img.src = fallbackSrc;
+      } else {
+        reject(new Error('Failed to load certificate template image: ' + template.file));
+      }
+    };
+    img.src = template.file || '/templates/svec_template.jpg';
   });
 
   // 1. Draw base certificate image

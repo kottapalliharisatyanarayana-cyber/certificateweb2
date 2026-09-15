@@ -49,6 +49,17 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 } // 15MB
 });
 
+function resolveTemplateFile(file) {
+  if (!file) return '/templates/svec_template.jpg';
+  if (file.startsWith('/uploads/')) {
+    const localPath = path.join(__dirname, '../../', file);
+    if (!fs.existsSync(localPath)) {
+      return '/templates/svec_template.jpg';
+    }
+  }
+  return file;
+}
+
 // GET /api/templates/active (Public / Student & Admin: Get the active template config)
 router.get('/active', async (req, res) => {
   try {
@@ -64,9 +75,12 @@ router.get('/active', async (req, res) => {
       });
     }
 
+    const templateData = template.toObject ? template.toObject() : { ...template };
+    templateData.template_file = resolveTemplateFile(templateData.template_file);
+
     res.json({
       success: true,
-      template
+      template: templateData
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

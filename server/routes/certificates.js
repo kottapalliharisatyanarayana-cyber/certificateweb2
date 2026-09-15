@@ -1,10 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
 const Student = require('../models/Student');
 const Event = require('../models/Event');
 const Participation = require('../models/Participation');
 const Template = require('../models/Template');
+
+function resolveTemplateFile(file) {
+  if (!file) return '/templates/svec_template.jpg';
+  if (file.startsWith('/uploads/')) {
+    const localPath = path.join(__dirname, '../..', file);
+    if (!fs.existsSync(localPath)) {
+      return '/templates/svec_template.jpg';
+    }
+  }
+  return file;
+}
 
 // GET /api/certificates/data/:roll_no/:eventId
 // Returns everything needed by the client Canvas / PDF engine to render the certificate
@@ -81,7 +94,7 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
         template: {
           id: template._id,
           name: template.template_name,
-          file: template.template_file,
+          file: resolveTemplateFile(template.template_file),
           config: template.fields_config
         },
         issuedDate: new Date().toLocaleDateString('en-US', {
@@ -150,7 +163,7 @@ router.get('/all-data/:roll_no', async (req, res) => {
         template: template ? {
           id: template._id,
           name: template.template_name,
-          file: template.template_file,
+          file: resolveTemplateFile(template.template_file),
           config: template.fields_config
         } : null,
         issuedDate: new Date().toLocaleDateString('en-US', {

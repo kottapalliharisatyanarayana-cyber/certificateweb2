@@ -805,8 +805,17 @@ async function drawStudioPreview() {
 
   await new Promise((resolve, reject) => {
     img.onload = () => resolve();
-    img.onerror = () => reject(new Error('Failed to load template'));
-    img.src = currentTemplate.template_file;
+    img.onerror = () => {
+      const fallbackSrc = '/templates/svec_template.jpg';
+      if (img.src && !img.src.includes(fallbackSrc)) {
+        console.warn('Template image failed to load, falling back to default:', currentTemplate.template_file);
+        img.onerror = () => reject(new Error('Failed to load template'));
+        img.src = fallbackSrc;
+      } else {
+        reject(new Error('Failed to load template'));
+      }
+    };
+    img.src = currentTemplate.template_file || '/templates/svec_template.jpg';
   });
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
