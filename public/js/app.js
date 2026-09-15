@@ -89,8 +89,7 @@ function displayStudentResults(data) {
   const studentBranch = document.getElementById('studentBranch');
   const studentSem = document.getElementById('studentSem');
   const eventCountBadge = document.getElementById('eventCountBadge');
-  const eventsGrid = document.getElementById('eventsGrid');
-  const consolidatedBtn = document.getElementById('consolidatedBtn');
+  const certificateSection = document.getElementById('certificateSection');
 
   studentName.textContent = data.student.name || 'N/A';
   studentRoll.textContent = data.student.roll_no || 'N/A';
@@ -98,85 +97,66 @@ function displayStudentResults(data) {
   studentSem.textContent = data.student.semester || 'IV Semester';
 
   const events = data.events || [];
-  eventCountBadge.textContent = `${events.length} Event${events.length === 1 ? '' : 's'}`;
-
-  // If student participated in multiple events, show consolidated button
-  if (events.length > 1) {
-    consolidatedBtn.style.display = 'inline-flex';
-  } else {
-    consolidatedBtn.style.display = 'none';
+  if (eventCountBadge) {
+    eventCountBadge.textContent = `${events.length} Event${events.length === 1 ? '' : 's'}`;
   }
 
-  eventsGrid.innerHTML = '';
+  certificateSection.innerHTML = '';
 
   if (events.length === 0) {
-    eventsGrid.innerHTML = `
-      <div class="empty-state" style="grid-column: 1/-1; padding: 2rem;">
-        <p>No active event participation records found for this student.</p>
+    certificateSection.innerHTML = `
+      <div class="empty-state" style="padding: 2.5rem 1.5rem;">
+        <div class="empty-icon">📭</div>
+        <h3 style="margin: 0.5rem 0 0.25rem;">No Event Participations Found</h3>
+        <p style="color: var(--text-muted);">No verified event participation records were found for roll number ${escapeHtml(data.student.roll_no)}.</p>
       </div>
     `;
   } else {
-    events.forEach(evt => {
-      const card = document.createElement('div');
-      card.className = 'event-card';
-      card.innerHTML = `
-        <div class="event-info">
-          <h3>${escapeHtml(evt.eventName)}</h3>
-          <div class="event-date">
-            <span>📅</span>
-            <span>${escapeHtml(evt.eventDate)}</span>
+    certificateSection.innerHTML = `
+      <div class="multi-cert-card">
+        <div class="multi-cert-main">
+          <div class="multi-cert-badge-row">
+            <span class="badge badge-success">✓ Verified Participation</span>
+            <span class="badge badge-primary">📜 Consolidated Certificate</span>
           </div>
-          <div>
-            <span class="badge badge-success">✓ Participated</span>
+          <h3 class="multi-cert-title">Institutional Multi-Event Certificate</h3>
+          <p class="multi-cert-desc">
+            Official certificate of participation issued by Sri Vasavi Engineering College covering all registered events for <strong>${escapeHtml(data.student.name)}</strong> (${escapeHtml(data.student.roll_no)}).
+          </p>
+          
+          <div class="multi-cert-events">
+            <span class="multi-cert-events-label">Included Participated Events (${events.length}):</span>
+            <div class="events-tag-container">
+              ${events.map(e => `<span class="event-tag">🏆 ${escapeHtml(e.eventName)}</span>`).join('')}
+            </div>
           </div>
         </div>
-        <div class="event-actions">
-          <button class="btn btn-secondary btn-sm" onclick="previewCertificate('${evt.eventId}', '${escapeHtml(evt.eventName)}')">
-            👁️ View
+
+        <div class="multi-cert-actions">
+          <button type="button" class="btn btn-primary" onclick="previewConsolidatedCertificate()">
+            👁️ View Certificate
           </button>
-          <button class="btn btn-primary btn-sm" onclick="downloadCertificateDirect('${evt.eventId}', '${escapeHtml(evt.eventName)}')">
+          <button type="button" class="btn btn-success" onclick="downloadConsolidatedPDF()">
             ⬇️ Download PDF
           </button>
+          <button type="button" class="btn btn-secondary" onclick="downloadConsolidatedPNG()">
+            🖼️ Download PNG
+          </button>
         </div>
-      `;
-      eventsGrid.appendChild(card);
-    });
+      </div>
+    `;
   }
 
   resultsContainer.style.display = 'block';
   resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Fetch single event certificate data and preview
-async function previewCertificate(eventId, eventName) {
-  if (!currentStudent) return;
-  currentEventTitle = eventName;
-
-  showToast('Rendering certificate...', 'info');
-
-  try {
-    const res = await fetch(`/api/certificates/data/${encodeURIComponent(currentStudent.roll_no)}/${eventId}`);
-    const data = await res.json();
-
-    if (!res.ok || !data.success) {
-      showToast(data.message || 'Failed to load certificate data.', 'error');
-      return;
-    }
-
-    currentCertData = data.certificate;
-    await renderCertificateCanvas(data.certificate, eventName);
-    openModal(`Certificate of Participation - ${eventName}`, `${data.certificate.student.name} (${data.certificate.student.roll_no})`);
-  } catch (err) {
-    showToast('Failed to load certificate: ' + err.message, 'error');
-  }
-}
-
-// Fetch consolidated multi-event certificate and preview
+// Fetch consolidated multi-event certificate and preview in modal
 async function previewConsolidatedCertificate() {
   if (!currentStudent) return;
   currentEventTitle = 'Multi-Event Participation';
 
-  showToast('Rendering consolidated certificate...', 'info');
+  showToast('Rendering multi-event certificate...', 'info');
 
   try {
     const res = await fetch(`/api/certificates/all-data/${encodeURIComponent(currentStudent.roll_no)}`);
@@ -189,9 +169,55 @@ async function previewConsolidatedCertificate() {
 
     currentCertData = data.certificate;
     await renderCertificateCanvas(data.certificate, data.certificate.combinedEventNames);
-    openModal(`Consolidated Certificate - Multiple Events`, `${data.certificate.student.name} (${data.certificate.student.roll_no})`);
+    openModal(`Institutional Multi-Event Certificate`, `${data.certificate.student.name} (${data.certificate.student.roll_no})`);
   } catch (err) {
     showToast('Failed to render multi-event certificate: ' + err.message, 'error');
+  }
+}
+
+// Directly download consolidated multi-event certificate as PDF
+async function downloadConsolidatedPDF() {
+  if (!currentStudent) return;
+  showToast('Generating PDF certificate...', 'info');
+
+  try {
+    const res = await fetch(`/api/certificates/all-data/${encodeURIComponent(currentStudent.roll_no)}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showToast(data.message || 'Failed to load multi-event certificate.', 'error');
+      return;
+    }
+
+    currentCertData = data.certificate;
+    currentEventTitle = 'Multi-Event Participation';
+    await renderCertificateCanvas(data.certificate, data.certificate.combinedEventNames);
+    downloadCertificatePDF();
+  } catch (err) {
+    showToast('Failed to download PDF: ' + err.message, 'error');
+  }
+}
+
+// Directly download consolidated multi-event certificate as PNG image
+async function downloadConsolidatedPNG() {
+  if (!currentStudent) return;
+  showToast('Generating PNG certificate...', 'info');
+
+  try {
+    const res = await fetch(`/api/certificates/all-data/${encodeURIComponent(currentStudent.roll_no)}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showToast(data.message || 'Failed to load multi-event certificate.', 'error');
+      return;
+    }
+
+    currentCertData = data.certificate;
+    currentEventTitle = 'Multi-Event Participation';
+    await renderCertificateCanvas(data.certificate, data.certificate.combinedEventNames);
+    downloadCertificateImage();
+  } catch (err) {
+    showToast('Failed to download PNG: ' + err.message, 'error');
   }
 }
 

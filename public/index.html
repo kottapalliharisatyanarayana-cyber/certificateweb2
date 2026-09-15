@@ -91,9 +91,7 @@
             <span>👤</span>
             <span>Participant Profile</span>
           </div>
-          <button id="consolidatedBtn" class="btn btn-secondary btn-sm" onclick="previewConsolidatedCertificate()">
-            📜 View Multi-Event Certificate
-          </button>
+          <span id="eventCountBadge" class="badge badge-primary">0 Events</span>
         </div>
 
         <div class="student-profile-grid">
@@ -115,17 +113,16 @@
           </div>
         </div>
 
-        <!-- PARTICIPATED EVENTS -->
+        <!-- MULTI-EVENT CERTIFICATE SECTION -->
         <div class="card-header" style="margin-top: 1.5rem; margin-bottom: 1rem;">
           <div class="card-title" style="font-size: 1.15rem;">
-            <span>🏆</span>
-            <span>Participated Events</span>
-            <span id="eventCountBadge" class="badge badge-primary" style="margin-left: 0.5rem;">0 Events</span>
+            <span>📜</span>
+            <span>Multi-Event Consolidated Certificate</span>
           </div>
         </div>
 
-        <div id="eventsGrid" class="events-grid">
-          <!-- Dynamically populated event cards -->
+        <div id="certificateSection">
+          <!-- Dynamically rendered Multi-Event Certificate -->
         </div>
 
       </div>
