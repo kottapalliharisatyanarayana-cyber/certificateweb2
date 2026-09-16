@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: certificate-portal
+    name: certificateweb2
     env: node
     plan: free
     buildCommand: npm install
