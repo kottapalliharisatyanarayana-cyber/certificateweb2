@@ -68,6 +68,7 @@
         <li><a class="sidebar-link" onclick="switchTab('manual')">✍️ Add Participant</a></li>
         <li><a class="sidebar-link" onclick="switchTab('students')">👥 Manage Students</a></li>
         <li><a class="sidebar-link" onclick="switchTab('events')">🏆 Manage Events</a></li>
+        <li><a class="sidebar-link" onclick="switchTab('event-certs')">📜 Event Certificates</a></li>
         <li><a class="sidebar-link" onclick="switchTab('template')">🎨 Template Studio</a></li>
         <li><a class="sidebar-link" onclick="switchTab('credentials')">🔑 Admin Security</a></li>
       </ul>
@@ -147,6 +148,17 @@
               Interactively adjust coordinates, typography, and font colors on the certificate canvas.
             </p>
             <button class="btn btn-secondary btn-sm" onclick="switchTab('template')">Open Template Studio ➔</button>
+          </div>
+
+          <div class="card" style="border: 1px solid rgba(59, 130, 246, 0.35); background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+              <h3 style="font-family: var(--font-display); font-size: 1.15rem; color: var(--primary);">📜 Event Certificates</h3>
+              <span class="badge badge-primary" style="font-size: 0.75rem;">Students & Coordinators</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Issue certificates for separate events using the main template. No upload needed! Full support for students and coordinators.
+            </p>
+            <button class="btn btn-primary btn-sm" onclick="switchTab('event-certs')">Issue Event Certificates ➔</button>
           </div>
 
           <div class="card">
@@ -409,6 +421,292 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- TAB: EVENT CERTIFICATES (FOR SEPARATE EVENTS, MAIN TEMPLATE REUSE, STUDENTS & COORDINATORS) -->
+      <section id="tab-event-certs" style="display: none;">
+        <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800; display: flex; align-items: center; gap: 0.6rem;">
+              <span>📜</span>
+              <span>Add Certificate for Separate Event</span>
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+              Issue and manage verified event certificates for <strong>students along with coordinators</strong> using the institutional main template.
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="openQuickEventModal()">+ Create Separate Event</button>
+            <button class="btn btn-secondary btn-sm" onclick="reloadCurrentEventCertificates()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <!-- MAIN TEMPLATE NOTICE & EVENT SELECTOR CARD -->
+        <div class="card" style="margin-bottom: 1.5rem; border: 1px solid rgba(30, 58, 138, 0.2); background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
+          <!-- NOTICE BANNER: MAIN TEMPLATE IN USE -->
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.25rem;">🏛️</span>
+              <div>
+                <strong style="color: #1e40af; font-size: 0.9rem;">Using Main Institutional Template:</strong>
+                <span style="color: #1e3a8a; font-size: 0.85rem; margin-left: 0.35rem;">Sri Vasavi Engineering College (Aikyam)</span>
+              </div>
+            </div>
+            <span class="badge badge-success" style="font-size: 0.775rem;">✓ No Template Upload Needed</span>
+          </div>
+
+          <!-- EVENT SELECTOR ROW -->
+          <div class="form-row" style="align-items: flex-end;">
+            <div class="form-group" style="flex: 2; margin-bottom: 0;">
+              <label class="form-label" for="eventCertEventSelect">
+                Select Separate Event <span style="color: var(--danger);">*</span>
+              </label>
+              <select id="eventCertEventSelect" class="form-control" onchange="onEventCertEventChanged(this.value)" style="font-weight: 600; font-size: 0.95rem;">
+                <option value="">-- Choose an Event to Manage Certificates --</option>
+              </select>
+            </div>
+            <div style="flex: 1; display: flex; gap: 0.5rem;">
+              <button type="button" class="btn btn-primary btn-block" onclick="openQuickEventModal()" style="white-space: nowrap;">
+                + Add New Event
+              </button>
+            </div>
+          </div>
+
+          <!-- SELECTED EVENT REALTIME STATS BAR -->
+          <div id="eventCertSummaryBar" style="display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--surface-border);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+              <div style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Active Event</span>
+                <h4 id="eventCertActiveName" style="font-size: 1rem; color: var(--primary); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</h4>
+                <p id="eventCertActiveDate" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">-</p>
+              </div>
+
+              <div style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Certificates</span>
+                <h3 id="eventCertStatTotal" style="font-size: 1.4rem; color: var(--text-main); margin-top: 0.25rem;">0</h3>
+              </div>
+
+              <div style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="font-size: 0.75rem; color: var(--primary-light); font-weight: 700; text-transform: uppercase;">🎓 Students</span>
+                  <span class="badge badge-primary" style="font-size: 0.7rem;">Participants</span>
+                </div>
+                <h3 id="eventCertStatStudents" style="font-size: 1.4rem; color: var(--primary); margin-top: 0.25rem;">0</h3>
+              </div>
+
+              <div style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid #fed7aa; background: #fffaf0;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="font-size: 0.75rem; color: #b45309; font-weight: 700; text-transform: uppercase;">⭐ Coordinators</span>
+                  <span class="badge badge-warning" style="font-size: 0.7rem; background: #fef3c7; color: #92400e;">Honored</span>
+                </div>
+                <h3 id="eventCertStatCoordinators" style="font-size: 1.4rem; color: #b45309; margin-top: 0.25rem;">0</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ISSUANCE SECTION (Shown when event is selected) -->
+        <div id="eventCertIssuanceContainer" style="display: none;">
+          
+          <!-- ISSUANCE CARD -->
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border); padding-bottom: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Issue Certificate for Selected Event</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Choose whether this certificate is for a Student Participant or an Event Coordinator</p>
+              </div>
+
+              <!-- SUB TABS: SINGLE VS BULK -->
+              <div style="display: flex; gap: 0.4rem;">
+                <button type="button" id="issuanceModeSingleBtn" class="btn btn-primary btn-sm" onclick="setEventCertMode('single')">
+                  ✍️ Single Recipient
+                </button>
+                <button type="button" id="issuanceModeBulkBtn" class="btn btn-secondary btn-sm" onclick="setEventCertMode('bulk')">
+                  📑 Batch / Bulk Add
+                </button>
+              </div>
+            </div>
+
+            <!-- 1. SINGLE RECIPIENT FORM -->
+            <div id="eventCertSingleFormArea">
+              <form id="eventCertSingleForm" onsubmit="handleIssueEventCertificate(event)">
+                
+                <!-- ROLE SELECTOR CARDS -->
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                  <label class="form-label" style="font-weight: 700;">Certificate Recipient Category *</label>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <!-- STUDENT CARD -->
+                    <label id="roleCardStudent" style="cursor: pointer; border: 2px solid var(--primary-light); background: #eff6ff; padding: 1rem; border-radius: var(--radius-sm); display: flex; align-items: flex-start; gap: 0.75rem; transition: all 0.2s;">
+                      <input type="radio" name="eventCertRoleOption" value="Student" checked onchange="handleCertRoleChange('Student')" style="margin-top: 0.2rem;">
+                      <div>
+                        <strong style="color: var(--primary); font-size: 0.95rem; display: block;">🎓 Student (Participant)</strong>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">
+                          Issues <em>Certificate of Participation</em> for attending or participating in the event.
+                        </span>
+                      </div>
+                    </label>
+
+                    <!-- COORDINATOR CARD -->
+                    <label id="roleCardCoordinator" style="cursor: pointer; border: 2px solid var(--surface-border); background: #fff; padding: 1rem; border-radius: var(--radius-sm); display: flex; align-items: flex-start; gap: 0.75rem; transition: all 0.2s;">
+                      <input type="radio" name="eventCertRoleOption" value="Coordinator" onchange="handleCertRoleChange('Coordinator')" style="margin-top: 0.2rem;">
+                      <div>
+                        <strong style="color: #b45309; font-size: 0.95rem; display: block;">⭐ Event Coordinator</strong>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">
+                          Issues <em>Certificate of Appreciation / Coordination</em> honoring organizing contribution.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- RECIPIENT DETAILS ROW 1 -->
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="eventCertRoll">
+                      <span id="labelRollText">Roll Number</span> <span style="color: var(--danger);">*</span>
+                    </label>
+                    <div style="display: flex; gap: 0.5rem;">
+                      <input type="text" id="eventCertRoll" class="form-control" placeholder="e.g. 22A81A0501" required style="text-transform: uppercase;" onblur="autoFillStudentDetails(this.value)">
+                      <button type="button" class="btn btn-secondary btn-sm" onclick="autoFillStudentDetails(document.getElementById('eventCertRoll').value)" title="Autofill if exists">🔍</button>
+                    </div>
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">Enter Roll No or Coordinator ID</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="eventCertName">Full Name *</label>
+                    <input type="text" id="eventCertName" class="form-control" placeholder="e.g. Rahul Sharma" required>
+                  </div>
+                </div>
+
+                <!-- RECIPIENT DETAILS ROW 2 -->
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="eventCertBranch">Branch / Department</label>
+                    <input type="text" id="eventCertBranch" class="form-control" placeholder="CSE" value="CSE">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="eventCertSem">Semester / Year</label>
+                    <input type="text" id="eventCertSem" class="form-control" placeholder="IV Semester B.Tech" value="IV Semester B.Tech">
+                  </div>
+                </div>
+
+                <!-- COORDINATOR SPECIFIC SETTINGS (Hidden when role is Student) -->
+                <div id="coordinatorFieldsArea" style="display: none; background: #fffaf0; border: 1px solid #fed7aa; padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+                  <h4 style="color: #92400e; font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span>⭐</span> Coordinator Recognition Details
+                  </h4>
+                  <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" for="eventCertDesignation">Coordinator Designation *</label>
+                      <select id="eventCertDesignation" class="form-control" onchange="checkCustomDesignation(this.value)">
+                        <option value="Student Coordinator">Student Coordinator</option>
+                        <option value="Lead Event Coordinator">Lead Event Coordinator</option>
+                        <option value="Faculty Coordinator">Faculty Coordinator</option>
+                        <option value="Technical Coordinator">Technical Coordinator</option>
+                        <option value="Organizing Committee">Organizing Committee Lead</option>
+                        <option value="__custom__">Custom Designation...</option>
+                      </select>
+                      <input type="text" id="eventCertCustomDesignation" class="form-control" placeholder="Enter custom coordinator title" style="display: none; margin-top: 0.5rem;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" for="eventCertType">Certificate Title</label>
+                      <select id="eventCertType" class="form-control">
+                        <option value="Appreciation">Certificate of Appreciation</option>
+                        <option value="Coordination">Certificate of Coordination</option>
+                        <option value="Participation">Certificate of Participation</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="eventCertEmail">Email Address (Optional)</label>
+                  <input type="email" id="eventCertEmail" class="form-control" placeholder="student@example.com">
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1rem;">
+                  <button type="submit" id="issueCertSubmitBtn" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 700;">
+                    💾 Issue Certificate Now
+                  </button>
+                  <button type="button" class="btn btn-secondary" onclick="resetEventCertSingleForm()">
+                    Reset Form
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- 2. BATCH / BULK ENTRY FORM -->
+            <div id="eventCertBulkFormArea" style="display: none;">
+              <div style="background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.85rem;">
+                <p style="font-weight: 700; margin-bottom: 0.4rem; color: var(--text-main);">Paste multiple participants or coordinators below (one per line):</p>
+                <code style="background: #fff; padding: 0.2rem 0.5rem; border: 1px solid var(--surface-border); border-radius: 4px; display: inline-block;">
+                  RollNo, Full Name, Role (Student or Coordinator), Branch, Semester, Designation
+                </code>
+                <div style="margin-top: 0.6rem; display: flex; gap: 0.5rem;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="fillSampleBulkEventCerts()">
+                    📋 Load Sample Rows
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('eventCertBulkInput').value = ''">
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <textarea id="eventCertBulkInput" class="form-control" rows="8" placeholder="22A81A0501, Aarav Sharma, Student, CSE, IV Semester B.Tech&#10;22A81A0502, Bhavya Sri, Coordinator, AIML, IV Semester B.Tech, Student Coordinator" style="font-family: monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
+              </div>
+
+              <button type="button" id="bulkCertSubmitBtn" class="btn btn-primary" onclick="submitBulkEventCertificates()" style="padding: 0.75rem 1.75rem; font-weight: 700;">
+                ⚡ Process & Issue All Batch Certificates
+              </button>
+            </div>
+
+          </div>
+
+          <!-- TABLE OF ISSUED CERTIFICATES FOR THIS EVENT -->
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--surface-border);">
+              <div>
+                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Issued Certificates</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">All verified certificates recorded for this event</p>
+              </div>
+
+              <!-- FILTER TABS & SEARCH -->
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <div class="pill-group" style="display: flex; background: var(--surface-subtle); padding: 0.25rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+                  <button type="button" id="filterTabAll" class="btn btn-sm btn-primary" onclick="setEventCertFilter('all')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">All (<span id="countPillAll">0</span>)</button>
+                  <button type="button" id="filterTabStudents" class="btn btn-sm btn-ghost" onclick="setEventCertFilter('students')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">🎓 Students (<span id="countPillStudents">0</span>)</button>
+                  <button type="button" id="filterTabCoordinators" class="btn btn-sm btn-ghost" onclick="setEventCertFilter('coordinators')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">⭐ Coordinators (<span id="countPillCoordinators">0</span>)</button>
+                </div>
+
+                <input type="text" id="eventCertSearchInput" class="form-control" placeholder="Search Roll, Name..." oninput="handleEventCertSearch(this.value)" style="width: 200px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+              </div>
+            </div>
+
+            <!-- DATA TABLE -->
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Roll / ID</th>
+                    <th>Full Name</th>
+                    <th>Role & Designation</th>
+                    <th>Certificate Type</th>
+                    <th>Branch / Sem</th>
+                    <th>Issue Date</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="eventCertsTableBody">
+                  <tr><td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">Select an event above to load certificates.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
       </section>
 
       <!-- TAB 6: TEMPLATE STUDIO -->
@@ -697,10 +995,92 @@
     </div>
   </div>
 
+  <!-- CERTIFICATE PREVIEW MODAL (ADMIN) -->
+  <div id="adminCertPreviewModal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 900px;">
+      <div class="modal-header">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <h3 id="adminModalCertTitle" class="modal-title">Certificate Preview</h3>
+            <span id="adminModalRoleBadge" class="badge badge-primary">Student</span>
+          </div>
+          <p id="adminModalCertSubtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Institutional Main Template</p>
+        </div>
+        <button class="modal-close" onclick="closeAdminCertModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="background: #0f172a; padding: 1.5rem; display: flex; justify-content: center; align-items: center; overflow-x: auto;">
+        <div class="canvas-wrapper" style="box-shadow: 0 15px 35px rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; background: #fff;">
+          <canvas id="adminCertCanvas" width="1024" height="682" style="max-width: 100%; height: auto; display: block;"></canvas>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+          <span>🏛️</span> Rendered with Official Main Template
+        </div>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="downloadAdminActivePNG()">
+            🖼️ Download PNG
+          </button>
+          <button class="btn btn-success" onclick="downloadAdminActivePDF()">
+            ⬇️ Download PDF
+          </button>
+          <button class="btn btn-secondary" onclick="closeAdminCertModal()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK CREATE SEPARATE EVENT MODAL -->
+  <div id="quickEventModal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🏆 Add Separate Event</h3>
+        <button class="modal-close" onclick="closeQuickEventModal()">&times;</button>
+      </div>
+      <form onsubmit="handleQuickCreateEvent(event)">
+        <div class="modal-body" style="background: #fff; padding: 1.5rem; color: var(--text-main); align-items: stretch;">
+          <div class="form-group">
+            <label class="form-label" for="quickEventName">Event Name *</label>
+            <input type="text" id="quickEventName" class="form-control" placeholder="e.g. AI & Robotics Symposium 2026" required autofocus>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="quickEventDate">Event Date</label>
+              <input type="text" id="quickEventDate" class="form-control" placeholder="e.g. Oct 15, 2026">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="quickEventCategory">Category</label>
+              <input type="text" id="quickEventCategory" class="form-control" placeholder="Separate Event" value="Separate Event">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="quickEventDesc">Description (Optional)</label>
+            <textarea id="quickEventDesc" class="form-control" rows="2" placeholder="Details about this separate event"></textarea>
+          </div>
+
+          <div style="background: var(--surface-subtle); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); font-size: 0.8rem; color: var(--text-muted);">
+            ℹ️ This event will automatically use the <strong>Institutional Main Template</strong> for all participant and coordinator certificates.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeQuickEventModal()">Cancel</button>
+          <button type="submit" id="quickEventSubmitBtn" class="btn btn-primary">Create & Select Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- TOAST CONTAINER -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- ADMIN SCRIPTS -->
+  <!-- OFFLINE-READY PDF GENERATOR & ADMIN SCRIPTS -->
+  <script src="/js/libs/jspdf.umd.min.js"></script>
   <script src="/js/admin.js"></script>
 </body>
 </html>

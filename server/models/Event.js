@@ -17,6 +17,20 @@ const EventSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: ''
+  },
+  category: {
+    type: String,
+    trim: true,
+    default: 'Separate Event'
+  },
+  custom_occasion: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  use_main_template: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

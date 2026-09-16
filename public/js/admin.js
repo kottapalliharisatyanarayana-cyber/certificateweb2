@@ -161,6 +161,7 @@ function switchTab(tabId) {
   if (tabId === 'overview') loadStats();
   if (tabId === 'students') loadStudents(studentCurrentPage);
   if (tabId === 'events') loadEvents();
+  if (tabId === 'event-certs') initEventCertsTab();
   if (tabId === 'manual') renderManualEventsCheckboxes();
   if (tabId === 'upload') populatePdfEventSelect();
   if (tabId === 'template') drawStudioPreview();
@@ -410,6 +411,7 @@ async function loadEvents() {
       renderEventsTable();
       renderManualEventsCheckboxes();
       populatePdfEventSelect();
+      populateEventCertSelect();
     }
   } catch (err) {
     console.error('Events load error:', err);
@@ -1142,4 +1144,793 @@ async function handleChangeCredentials(e) {
     showToast('Failed to update credentials: ' + err.message, 'error');
   }
 }
+
+// =======================================================
+// EVENT CERTIFICATE MANAGEMENT (MAIN TEMPLATE & ROLES)
+// =======================================================
+
+let currentEventCertEventId = null;
+let currentEventCertsList = [];
+let currentEventCertFilter = 'all'; // 'all', 'students', 'coordinators'
+let activeAdminPreviewCert = null;
+
+// Initialize Event Certificates Tab
+async function initEventCertsTab() {
+  if (eventsCache.length === 0) {
+    await loadEvents();
+  }
+  populateEventCertSelect(currentEventCertEventId);
+
+  // If no event selected but events exist, auto-select first event
+  if (!currentEventCertEventId && eventsCache.length > 0) {
+    currentEventCertEventId = eventsCache[0]._id;
+    const select = document.getElementById('eventCertEventSelect');
+    if (select) select.value = currentEventCertEventId;
+  }
+
+  if (currentEventCertEventId) {
+    await loadEventCertificates(currentEventCertEventId);
+  }
+}
+
+// Populate the Event Select dropdown in Event Certificates tab
+function populateEventCertSelect(selectedId) {
+  const select = document.getElementById('eventCertEventSelect');
+  if (!select) return;
+
+  const prevVal = selectedId || select.value;
+  select.innerHTML = '<option value="">-- Choose an Event to Manage Certificates --</option>' +
+    eventsCache.map(e => `
+      <option value="${e._id}" ${e._id === prevVal ? 'selected' : ''}>
+        ${escapeHtml(e.event_name)} (${escapeHtml(e.event_date || 'N/A')}) — ${e.participantCount || 0} certs
+      </option>
+    `).join('');
+
+  if (prevVal && eventsCache.some(e => e._id === prevVal)) {
+    select.value = prevVal;
+  }
+}
+
+// Triggered when user selects a different event
+async function onEventCertEventChanged(eventId) {
+  currentEventCertEventId = eventId || null;
+  if (!eventId) {
+    document.getElementById('eventCertSummaryBar').style.display = 'none';
+    document.getElementById('eventCertIssuanceContainer').style.display = 'none';
+    return;
+  }
+  await loadEventCertificates(eventId);
+}
+
+// Reload current event certificates
+async function reloadCurrentEventCertificates() {
+  if (!currentEventCertEventId) {
+    showToast('Please select an event first', 'info');
+    return;
+  }
+  await loadEventCertificates(currentEventCertEventId);
+  showToast('Event certificates refreshed', 'success');
+}
+
+// Fetch and display certificates for selected event
+async function loadEventCertificates(eventId) {
+  if (!eventId) return;
+
+  try {
+    const { res, data } = await safeFetch(`/api/events/${eventId}/certificates`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    if (!res.ok || !data.success) {
+      showToast(data.message || 'Failed to load event certificates', 'error');
+      return;
+    }
+
+    const event = data.event;
+    currentEventCertsList = data.certificates || [];
+
+    // 1. Update summary bar
+    document.getElementById('eventCertActiveName').textContent = event.name;
+    document.getElementById('eventCertActiveDate').textContent = `${event.date} • ${event.category || 'Separate Event'}`;
+    document.getElementById('eventCertStatTotal').textContent = data.counts?.total || currentEventCertsList.length;
+    document.getElementById('eventCertStatStudents').textContent = data.counts?.students || 0;
+    document.getElementById('eventCertStatCoordinators').textContent = data.counts?.coordinators || 0;
+
+    // 2. Update count pills
+    const pillAll = document.getElementById('countPillAll');
+    const pillStudents = document.getElementById('countPillStudents');
+    const pillCoords = document.getElementById('countPillCoordinators');
+    if (pillAll) pillAll.textContent = data.counts?.total || currentEventCertsList.length;
+    if (pillStudents) pillStudents.textContent = data.counts?.students || 0;
+    if (pillCoords) pillCoords.textContent = data.counts?.coordinators || 0;
+
+    // 3. Show sections
+    document.getElementById('eventCertSummaryBar').style.display = 'block';
+    document.getElementById('eventCertIssuanceContainer').style.display = 'block';
+
+    // 4. Render table
+    renderEventCertificatesTable();
+  } catch (err) {
+    console.error('Event certificates load error:', err);
+    showToast('Failed to load certificates: ' + err.message, 'error');
+  }
+}
+
+// Filter tabs handling (All, Students, Coordinators)
+function setEventCertFilter(filter) {
+  currentEventCertFilter = filter;
+  const tabAll = document.getElementById('filterTabAll');
+  const tabStudents = document.getElementById('filterTabStudents');
+  const tabCoords = document.getElementById('filterTabCoordinators');
+
+  if (tabAll) tabAll.className = filter === 'all' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+  if (tabStudents) tabStudents.className = filter === 'students' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+  if (tabCoords) tabCoords.className = filter === 'coordinators' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+
+  renderEventCertificatesTable();
+}
+
+// Search input handling within loaded certificates
+function handleEventCertSearch(query) {
+  renderEventCertificatesTable();
+}
+
+// Render the event certificates table
+function renderEventCertificatesTable() {
+  const tbody = document.getElementById('eventCertsTableBody');
+  if (!tbody) return;
+
+  const searchInput = document.getElementById('eventCertSearchInput');
+  const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+  // Filter list
+  let list = currentEventCertsList.filter(c => {
+    // Role filter
+    if (currentEventCertFilter === 'students' && c.isCoordinator) return false;
+    if (currentEventCertFilter === 'coordinators' && !c.isCoordinator) return false;
+
+    // Search query filter
+    if (query) {
+      const matchRoll = (c.student?.roll_no || '').toLowerCase().includes(query);
+      const matchName = (c.student?.name || '').toLowerCase().includes(query);
+      const matchBranch = (c.student?.branch || '').toLowerCase().includes(query);
+      const matchDesig = (c.designation || '').toLowerCase().includes(query);
+      return matchRoll || matchName || matchBranch || matchDesig;
+    }
+    return true;
+  });
+
+  if (list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+          No ${currentEventCertFilter === 'coordinators' ? 'coordinator' : currentEventCertFilter === 'students' ? 'student' : ''} certificates found matching your criteria.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = list.map(c => {
+    const isCoord = c.isCoordinator;
+    const roleBadge = isCoord
+      ? `<span class="badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⭐ ${escapeHtml(c.designation || 'Coordinator')}</span>`
+      : `<span class="badge badge-primary">🎓 Student</span>`;
+
+    const certTypeBadge = isCoord
+      ? `<span style="font-size: 0.8rem; font-weight: 600; color: #b45309;">📜 Appreciation</span>`
+      : `<span style="font-size: 0.8rem; font-weight: 600; color: #1e40af;">📜 Participation</span>`;
+
+    // Package certificate data safely for button onclick
+    const certJsonStr = encodeURIComponent(JSON.stringify(c));
+
+    return `
+      <tr>
+        <td><strong style="color: ${isCoord ? '#b45309' : 'var(--primary)'}; font-family: monospace;">${escapeHtml(c.student?.roll_no || '-')}</strong></td>
+        <td>
+          <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(c.student?.name || '-')}</div>
+          ${c.student?.email ? `<span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(c.student.email)}</span>` : ''}
+        </td>
+        <td>${roleBadge}</td>
+        <td>${certTypeBadge}</td>
+        <td>
+          <span style="font-size: 0.85rem;">${escapeHtml(c.student?.branch || 'CSE')}</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">${escapeHtml(c.student?.semester || '-')}</span>
+        </td>
+        <td>
+          <span style="font-size: 0.85rem;">${escapeHtml(c.issueDate || 'N/A')}</span>
+          <span style="font-size: 0.7rem; color: var(--text-muted); display: block; font-family: monospace;">${escapeHtml(c.certificateId || '')}</span>
+        </td>
+        <td style="text-align: right; white-space: nowrap;">
+          <button class="btn btn-secondary btn-sm" onclick="openAdminCertPreviewFromEncoded('${certJsonStr}')" title="Preview Certificate on Main Template">
+            👁️ Preview
+          </button>
+          <button class="btn btn-success btn-sm" onclick="directDownloadEventCertFromEncoded('${certJsonStr}', 'pdf')" title="Download High-Res PDF">
+            ⬇️ PDF
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="directDownloadEventCertFromEncoded('${certJsonStr}', 'png')" title="Download PNG Image">
+            🖼️
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="revokeEventCertificate('${c.participationId}', '${escapeHtml(c.student?.name)}')" title="Revoke Certificate">
+            🗑️
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Role toggle in single issuance form (Student vs Coordinator)
+function handleCertRoleChange(role) {
+  const cardStudent = document.getElementById('roleCardStudent');
+  const cardCoordinator = document.getElementById('roleCardCoordinator');
+  const coordinatorFieldsArea = document.getElementById('coordinatorFieldsArea');
+  const labelRollText = document.getElementById('labelRollText');
+  const certTypeSelect = document.getElementById('eventCertType');
+
+  if (role === 'Coordinator') {
+    if (cardCoordinator) {
+      cardCoordinator.style.borderColor = '#d97706';
+      cardCoordinator.style.background = '#fffaf0';
+    }
+    if (cardStudent) {
+      cardStudent.style.borderColor = 'var(--surface-border)';
+      cardStudent.style.background = '#fff';
+    }
+    if (coordinatorFieldsArea) coordinatorFieldsArea.style.display = 'block';
+    if (labelRollText) labelRollText.textContent = 'Coordinator ID / Roll Number';
+    if (certTypeSelect) certTypeSelect.value = 'Appreciation';
+  } else {
+    if (cardStudent) {
+      cardStudent.style.borderColor = 'var(--primary-light)';
+      cardStudent.style.background = '#eff6ff';
+    }
+    if (cardCoordinator) {
+      cardCoordinator.style.borderColor = 'var(--surface-border)';
+      cardCoordinator.style.background = '#fff';
+    }
+    if (coordinatorFieldsArea) coordinatorFieldsArea.style.display = 'none';
+    if (labelRollText) labelRollText.textContent = 'Roll Number';
+    if (certTypeSelect) certTypeSelect.value = 'Participation';
+  }
+}
+
+// Handle custom designation input visibility
+function checkCustomDesignation(val) {
+  const customInput = document.getElementById('eventCertCustomDesignation');
+  if (!customInput) return;
+  if (val === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+  }
+}
+
+// Autofill student data if they already exist in database
+async function autoFillStudentDetails(roll) {
+  if (!roll || !roll.trim()) return;
+  const rollClean = roll.trim().toUpperCase();
+
+  try {
+    const { res, data } = await safeFetch(`/api/students/search/${encodeURIComponent(rollClean)}`);
+    if (res.ok && data.success && data.student) {
+      const nameInput = document.getElementById('eventCertName');
+      const branchInput = document.getElementById('eventCertBranch');
+      const semInput = document.getElementById('eventCertSem');
+      const emailInput = document.getElementById('eventCertEmail');
+
+      if (nameInput && !nameInput.value) nameInput.value = data.student.name || '';
+      if (branchInput && (!branchInput.value || branchInput.value === 'CSE')) branchInput.value = data.student.branch || 'CSE';
+      if (semInput && (!semInput.value || semInput.value === 'IV Semester B.Tech')) semInput.value = data.student.semester || 'IV Semester B.Tech';
+      if (emailInput && !emailInput.value) emailInput.value = data.student.email || '';
+
+      showToast(`Autofilled details for ${data.student.name}`, 'info');
+    }
+  } catch (err) {
+    // Silent fail if not found
+  }
+}
+
+// Single Certificate Issuance Submission
+async function handleIssueEventCertificate(e) {
+  e.preventDefault();
+  if (!currentEventCertEventId) {
+    showToast('Please select an event before issuing certificates', 'error');
+    return;
+  }
+
+  const roll_no = document.getElementById('eventCertRoll').value.trim().toUpperCase();
+  const name = document.getElementById('eventCertName').value.trim();
+  const branch = document.getElementById('eventCertBranch').value.trim();
+  const semester = document.getElementById('eventCertSem').value.trim();
+  const email = document.getElementById('eventCertEmail').value.trim();
+
+  const roleRadio = document.querySelector('input[name="eventCertRoleOption"]:checked');
+  const role = roleRadio ? roleRadio.value : 'Student';
+  const isCoord = role === 'Coordinator';
+
+  let designation = 'Participant';
+  let certificate_type = 'Participation';
+
+  if (isCoord) {
+    const desigSelect = document.getElementById('eventCertDesignation');
+    if (desigSelect && desigSelect.value === '__custom__') {
+      designation = (document.getElementById('eventCertCustomDesignation').value || '').trim() || 'Student Coordinator';
+    } else if (desigSelect) {
+      designation = desigSelect.value;
+    } else {
+      designation = 'Student Coordinator';
+    }
+    const typeSelect = document.getElementById('eventCertType');
+    certificate_type = typeSelect ? typeSelect.value : 'Appreciation';
+  }
+
+  const submitBtn = document.getElementById('issueCertSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Issuing Certificate...';
+
+  try {
+    const { res, data } = await safeFetch(`/api/events/${currentEventCertEventId}/issue-certificate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        roll_no,
+        name,
+        branch,
+        semester,
+        email,
+        role: isCoord ? (designation || 'Coordinator') : 'Student',
+        designation,
+        certificate_type
+      })
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = '💾 Issue Certificate Now';
+
+    if (res.ok && data.success) {
+      showToast(data.message || 'Certificate issued successfully!', 'success');
+      resetEventCertSingleForm();
+      await loadEventCertificates(currentEventCertEventId);
+      loadStats();
+    } else {
+      showToast(data.message || 'Failed to issue certificate', 'error');
+    }
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '💾 Issue Certificate Now';
+    showToast('Issuance error: ' + err.message, 'error');
+  }
+}
+
+// Reset single issuance form
+function resetEventCertSingleForm() {
+  document.getElementById('eventCertRoll').value = '';
+  document.getElementById('eventCertName').value = '';
+  document.getElementById('eventCertEmail').value = '';
+  const radioStudent = document.querySelector('input[name="eventCertRoleOption"][value="Student"]');
+  if (radioStudent) radioStudent.checked = true;
+  handleCertRoleChange('Student');
+}
+
+// Toggle between Single and Batch issuance forms
+function setEventCertMode(mode) {
+  const btnSingle = document.getElementById('issuanceModeSingleBtn');
+  const btnBulk = document.getElementById('issuanceModeBulkBtn');
+  const areaSingle = document.getElementById('eventCertSingleFormArea');
+  const areaBulk = document.getElementById('eventCertBulkFormArea');
+
+  if (mode === 'bulk') {
+    btnSingle.className = 'btn btn-secondary btn-sm';
+    btnBulk.className = 'btn btn-primary btn-sm';
+    areaSingle.style.display = 'none';
+    areaBulk.style.display = 'block';
+  } else {
+    btnSingle.className = 'btn btn-primary btn-sm';
+    btnBulk.className = 'btn btn-secondary btn-sm';
+    areaSingle.style.display = 'block';
+    areaBulk.style.display = 'none';
+  }
+}
+
+// Fill sample bulk rows
+function fillSampleBulkEventCerts() {
+  const input = document.getElementById('eventCertBulkInput');
+  if (!input) return;
+  input.value = [
+    '22A81A0501, Aarav Sharma, Student, CSE, IV Semester B.Tech, Participant',
+    '22A81A0502, Bhavya Sri, Coordinator, AIML, IV Semester B.Tech, Student Coordinator',
+    '22A81A0503, Chaitanya Varma, Student, ECE, IV Semester B.Tech, Participant',
+    '22A81A0504, Divya Jyothi, Coordinator, CSE, IV Semester B.Tech, Technical Coordinator'
+  ].join('\n');
+}
+
+// Process and submit batch/bulk certificate issuance
+async function submitBulkEventCertificates() {
+  if (!currentEventCertEventId) {
+    showToast('Please select an event before issuing batch certificates', 'error');
+    return;
+  }
+
+  const rawText = (document.getElementById('eventCertBulkInput')?.value || '').trim();
+  if (!rawText) {
+    showToast('Please paste at least one recipient line to proceed', 'error');
+    return;
+  }
+
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  const recipients = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Split comma or tab
+    const parts = line.split(/[,	]/).map(p => p.trim());
+    if (parts.length < 2) continue;
+
+    const roll_no = parts[0];
+    const name = parts[1];
+    const roleInput = (parts[2] || 'Student');
+    const isCoord = roleInput.toLowerCase().includes('coordinator');
+    const branch = parts[3] || 'CSE';
+    const semester = parts[4] || 'IV Semester B.Tech';
+    const designation = parts[5] || (isCoord ? 'Student Coordinator' : 'Participant');
+
+    recipients.push({
+      roll_no,
+      name,
+      role: isCoord ? (designation || 'Student Coordinator') : 'Student',
+      branch,
+      semester,
+      designation,
+      certificate_type: isCoord ? 'Appreciation' : 'Participation'
+    });
+  }
+
+  if (recipients.length === 0) {
+    showToast('Could not parse any valid recipient lines from input', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('bulkCertSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = `Processing ${recipients.length} recipients...`;
+
+  try {
+    const { res, data } = await safeFetch(`/api/events/${currentEventCertEventId}/bulk-issue`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ recipients })
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = '⚡ Process & Issue All Batch Certificates';
+
+    if (res.ok && data.success) {
+      showToast(data.message || 'Batch certificates issued successfully!', 'success');
+      document.getElementById('eventCertBulkInput').value = '';
+      await loadEventCertificates(currentEventCertEventId);
+      loadStats();
+    } else {
+      showToast(data.message || 'Failed to complete batch issuance', 'error');
+    }
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '⚡ Process & Issue All Batch Certificates';
+    showToast('Batch issuance error: ' + err.message, 'error');
+  }
+}
+
+// Revoke/Delete a certificate
+async function revokeEventCertificate(participationId, name) {
+  if (!confirm(`Are you sure you want to revoke and delete the certificate for "${name}"?`)) {
+    return;
+  }
+
+  try {
+    const { res, data } = await safeFetch(`/api/events/${currentEventCertEventId}/certificates/${participationId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    if (res.ok && data.success) {
+      showToast('Certificate revoked successfully', 'info');
+      await loadEventCertificates(currentEventCertEventId);
+      loadStats();
+    } else {
+      showToast(data.message || 'Failed to revoke certificate', 'error');
+    }
+  } catch (err) {
+    showToast('Revocation error: ' + err.message, 'error');
+  }
+}
+
+// Quick Create Separate Event Modal
+function openQuickEventModal() {
+  document.getElementById('quickEventName').value = '';
+  document.getElementById('quickEventDate').value = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  document.getElementById('quickEventDesc').value = '';
+  document.getElementById('quickEventModal').classList.add('active');
+}
+
+function closeQuickEventModal() {
+  document.getElementById('quickEventModal').classList.remove('active');
+}
+
+async function handleQuickCreateEvent(e) {
+  e.preventDefault();
+  const name = document.getElementById('quickEventName').value.trim();
+  const date = document.getElementById('quickEventDate').value.trim();
+  const category = document.getElementById('quickEventCategory').value.trim();
+  const description = document.getElementById('quickEventDesc').value.trim();
+
+  const submitBtn = document.getElementById('quickEventSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating Event...';
+
+  try {
+    const { res, data } = await safeFetch('/api/events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        event_name: name,
+        event_date: date,
+        category: category || 'Separate Event',
+        description
+      })
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create & Select Event';
+
+    if (res.ok && data.success && data.event) {
+      showToast(`Separate event "${name}" created successfully!`, 'success');
+      closeQuickEventModal();
+      await loadEvents();
+      currentEventCertEventId = data.event._id;
+      populateEventCertSelect(currentEventCertEventId);
+      await loadEventCertificates(currentEventCertEventId);
+    } else {
+      showToast(data.message || 'Failed to create event', 'error');
+    }
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create & Select Event';
+    showToast('Event creation error: ' + err.message, 'error');
+  }
+}
+
+// Decode helper for button handlers
+function openAdminCertPreviewFromEncoded(jsonStr) {
+  try {
+    const cert = JSON.parse(decodeURIComponent(jsonStr));
+    openAdminCertPreview(cert);
+  } catch (e) {
+    showToast('Preview error: ' + e.message, 'error');
+  }
+}
+
+function directDownloadEventCertFromEncoded(jsonStr, type) {
+  try {
+    const cert = JSON.parse(decodeURIComponent(jsonStr));
+    directDownloadAdminEventCert(cert, type);
+  } catch (e) {
+    showToast('Download error: ' + e.message, 'error');
+  }
+}
+
+// Preview Modal Open & Render
+async function openAdminCertPreview(cert) {
+  activeAdminPreviewCert = cert;
+  const modal = document.getElementById('adminCertPreviewModal');
+  const title = document.getElementById('adminModalCertTitle');
+  const badge = document.getElementById('adminModalRoleBadge');
+  const subtitle = document.getElementById('adminModalCertSubtitle');
+
+  const isCoord = cert.isCoordinator;
+  title.textContent = isCoord ? 'Coordinator Certificate of Appreciation' : 'Student Certificate of Participation';
+  badge.textContent = isCoord ? `⭐ ${cert.designation || 'Coordinator'}` : '🎓 Participant';
+  badge.className = isCoord ? 'badge badge-warning' : 'badge badge-primary';
+  subtitle.textContent = `${cert.student?.name} (${cert.student?.roll_no}) • Using Institutional Main Template`;
+
+  modal.classList.add('active');
+  await drawAdminCertificateCanvas(cert);
+}
+
+function closeAdminCertModal() {
+  document.getElementById('adminCertPreviewModal').classList.remove('active');
+}
+
+// Core Canvas Drawing Engine using Main Template for Students & Coordinators
+async function drawAdminCertificateCanvas(cert) {
+  const canvas = document.getElementById('adminCertCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Find active event details
+  const activeEvent = eventsCache.find(e => e._id === currentEventCertEventId) || {};
+  const eventName = activeEvent.event_name || 'College Event';
+
+  canvas.width = 1024;
+  canvas.height = 682;
+
+  // Always use official main template (svec_template.jpg)
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+
+  await new Promise((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => {
+      const fallback = '/templates/svec_template.jpg';
+      if (img.src && !img.src.includes(fallback)) {
+        img.src = fallback;
+      } else {
+        reject(new Error('Failed to load main certificate template'));
+      }
+    };
+    img.src = '/templates/svec_template.jpg';
+  });
+
+  // 1. Draw base main certificate template
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
+  const student = cert.student || {};
+
+  // Config positions (Sri Vasavi Engineering College Template Specs)
+  const nameX = 350, nameY = 355;
+  const semX = 125, semY = 382;
+  const branchX = 360, branchY = 382;
+  const rollX = 690, rollY = 382;
+  const eventX = 400, eventY = 409;
+
+  ctx.textBaseline = 'middle';
+
+  // 2. COORDINATOR SPECIAL ADAPTATIONS ON MAIN TEMPLATE
+  if (isCoord) {
+    // 2a. Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
+    // "OF PARTICIPATION" is centered around x: 512, y: 298 with width ~360, height ~24
+    ctx.fillStyle = '#faf8f5';
+    ctx.beginPath();
+    ctx.roundRect(320, 285, 384, 26, 4);
+    ctx.fill();
+
+    // Render "OF APPRECIATION" in bold crimson matching the template aesthetic
+    ctx.font = '700 19px "Playfair Display", Georgia, serif';
+    ctx.fillStyle = '#7b1113';
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('OF  APPRECIATION', 512, 298);
+    ctx.letterSpacing = '0px';
+
+    // 2b. Add Prestigious Coordinator Insignia Banner at Top-Right
+    const desigText = (cert.designation || 'EVENT COORDINATOR').toUpperCase();
+    ctx.save();
+    ctx.textAlign = 'center';
+    
+    // Ribbon pill badge
+    const badgeW = Math.max(220, desigText.length * 9 + 40);
+    const badgeX = 860 - badgeW / 2;
+    const badgeY = 248;
+
+    ctx.fillStyle = 'rgba(123, 17, 19, 0.95)';
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY - 13, badgeW, 26, 13);
+    ctx.fill();
+
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.font = '700 10.5px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillText(`★  ${desigText}  ★`, 860, badgeY);
+    ctx.restore();
+  }
+
+  // 3. Render Recipient Dynamic Data
+  ctx.textAlign = 'left';
+
+  // Name (Playfair serif)
+  ctx.font = 'bold 20px "Playfair Display", Georgia, serif';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillText(student.name || '-', nameX, nameY);
+
+  // Semester
+  ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillText(student.semester || 'IV Semester', semX, semY);
+
+  // Branch
+  ctx.fillText(student.branch || 'CSE', branchX, branchY);
+
+  // Roll Number / Coordinator ID
+  ctx.fillText(student.roll_no || '-', rollX, rollY);
+
+  // Event & Role display
+  ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#7b1113';
+
+  if (isCoord) {
+    ctx.fillText(`${eventName} (${cert.designation || 'Student Coordinator'})`, eventX, eventY);
+  } else {
+    ctx.fillText(eventName, eventX, eventY);
+  }
+
+  // 4. Security Verification ID & Issue Date at Bottom
+  ctx.font = '10px monospace';
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
+  ctx.textAlign = 'left';
+  const certIdDisplay = cert.certificateId || `SVEC-${isCoord ? 'COORD' : 'CERT'}-${(student.roll_no || 'REC')}`;
+  ctx.fillText(`ID: ${certIdDisplay} | Issued: ${cert.issueDate || 'Verified'} | Sri Vasavi Engg College`, 32, canvas.height - 18);
+}
+
+// Download Active Canvas as PDF
+function downloadAdminActivePDF() {
+  const canvas = document.getElementById('adminCertCanvas');
+  if (!canvas || !activeAdminPreviewCert) return;
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'px',
+      format: [canvas.width, canvas.height]
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    doc.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+
+    const safeRoll = (activeAdminPreviewCert.student?.roll_no || 'Roll').replace(/[^a-zA-Z0-9]/g, '_');
+    const safeName = (activeAdminPreviewCert.student?.name || 'Recipient').replace(/[^a-zA-Z0-9]/g, '_');
+    const roleTag = activeAdminPreviewCert.isCoordinator ? 'Coordinator' : 'Participant';
+    const filename = `${safeRoll}_${safeName}_${roleTag}_Certificate.pdf`;
+
+    doc.save(filename);
+    showToast(`PDF Downloaded: ${filename}`, 'success');
+  } catch (err) {
+    console.error('PDF Export error:', err);
+    showToast('Failed to export PDF: ' + err.message, 'error');
+  }
+}
+
+// Download Active Canvas as PNG
+function downloadAdminActivePNG() {
+  const canvas = document.getElementById('adminCertCanvas');
+  if (!canvas || !activeAdminPreviewCert) return;
+
+  const safeRoll = (activeAdminPreviewCert.student?.roll_no || 'Roll').replace(/[^a-zA-Z0-9]/g, '_');
+  const safeName = (activeAdminPreviewCert.student?.name || 'Recipient').replace(/[^a-zA-Z0-9]/g, '_');
+  const roleTag = activeAdminPreviewCert.isCoordinator ? 'Coordinator' : 'Participant';
+  const filename = `${safeRoll}_${safeName}_${roleTag}_Certificate.png`;
+
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast(`Image Downloaded: ${filename}`, 'success');
+}
+
+// Direct Download from table row without opening modal first
+async function directDownloadAdminEventCert(cert, format = 'pdf') {
+  activeAdminPreviewCert = cert;
+  showToast(`Generating ${format.toUpperCase()} certificate...`, 'info');
+  await drawAdminCertificateCanvas(cert);
+
+  if (format === 'pdf') {
+    downloadAdminActivePDF();
+  } else {
+    downloadAdminActivePNG();
+  }
+}
+
 

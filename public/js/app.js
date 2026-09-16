@@ -98,7 +98,7 @@ function displayStudentResults(data) {
 
   const events = data.events || [];
   if (eventCountBadge) {
-    eventCountBadge.textContent = `${events.length} Event${events.length === 1 ? '' : 's'}`;
+    eventCountBadge.textContent = `${events.length} Certificate${events.length === 1 ? '' : 's'}`;
   }
 
   certificateSection.innerHTML = '';
@@ -107,48 +107,148 @@ function displayStudentResults(data) {
     certificateSection.innerHTML = `
       <div class="empty-state" style="padding: 2.5rem 1.5rem;">
         <div class="empty-icon">📭</div>
-        <h3 style="margin: 0.5rem 0 0.25rem;">No Event Participations Found</h3>
-        <p style="color: var(--text-muted);">No verified event participation records were found for roll number ${escapeHtml(data.student.roll_no)}.</p>
+        <h3 style="margin: 0.5rem 0 0.25rem;">No Certificates Found</h3>
+        <p style="color: var(--text-muted);">No verified event participation or coordinator records were found for roll number ${escapeHtml(data.student.roll_no)}.</p>
       </div>
     `;
   } else {
-    certificateSection.innerHTML = `
-      <div class="multi-cert-card">
-        <div class="multi-cert-main">
-          <div class="multi-cert-badge-row">
-            <span class="badge badge-success">✓ Verified Participation</span>
-            <span class="badge badge-primary">📜 Consolidated Certificate</span>
+    // 1. Render individual certificates for each event (distinguishing Students vs Coordinators)
+    const cardsHtml = events.map(e => {
+      const isCoord = e.isCoordinator || (e.role || '').toLowerCase().includes('coordinator');
+      const cardBorder = isCoord ? 'border: 1px solid #fed7aa; background: linear-gradient(180deg, #ffffff 0%, #fffaf0 100%);' : '';
+      const badgeHtml = isCoord
+        ? `<span class="badge badge-warning" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⭐ ${escapeHtml(e.designation || 'Coordinator')}</span>
+           <span class="badge badge-primary">📜 Certificate of Appreciation</span>`
+        : `<span class="badge badge-success">✓ Verified Participation</span>
+           <span class="badge badge-primary">📜 Certificate of Participation</span>`;
+
+      const titlePrefix = isCoord ? '⭐ Event Coordinator Certificate' : '🎓 Certificate of Participation';
+      const descText = isCoord
+        ? `Official institutional certificate honoring active contribution as <strong>${escapeHtml(e.designation || 'Student Coordinator')}</strong> for <strong>${escapeHtml(e.eventName)}</strong>.`
+        : `Official institutional certificate certifying active participation in <strong>${escapeHtml(e.eventName)}</strong>.`;
+
+      const eventDateText = e.eventDate && e.eventDate !== 'N/A' ? ` • Event Date: ${escapeHtml(e.eventDate)}` : '';
+
+      return `
+        <div class="multi-cert-card" style="margin-bottom: 1.25rem; ${cardBorder}">
+          <div class="multi-cert-main">
+            <div class="multi-cert-badge-row">
+              ${badgeHtml}
+            </div>
+            <h3 class="multi-cert-title" style="color: ${isCoord ? '#92400e' : 'var(--primary)'};">
+              ${titlePrefix}: ${escapeHtml(e.eventName)}
+            </h3>
+            <p class="multi-cert-desc">
+              ${descText}${eventDateText}
+            </p>
           </div>
-          <h3 class="multi-cert-title">Institutional Multi-Event Certificate</h3>
-          <p class="multi-cert-desc">
-            Official certificate of participation issued by Sri Vasavi Engineering College covering all registered events for <strong>${escapeHtml(data.student.name)}</strong> (${escapeHtml(data.student.roll_no)}).
-          </p>
-          
-          <div class="multi-cert-events">
-            <span class="multi-cert-events-label">Included Participated Events (${events.length}):</span>
-            <div class="events-tag-container">
-              ${events.map(e => `<span class="event-tag">🏆 ${escapeHtml(e.eventName)}</span>`).join('')}
+
+          <div class="multi-cert-actions">
+            <button type="button" class="btn btn-primary" onclick="previewSingleCertificate('${e.eventId}', '${escapeHtml(e.eventName)}')">
+              👁️ View Certificate
+            </button>
+            <button type="button" class="btn btn-success" onclick="downloadSingleCertificate('${e.eventId}', '${escapeHtml(e.eventName)}', 'pdf')">
+              ⬇️ Download PDF
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="downloadSingleCertificate('${e.eventId}', '${escapeHtml(e.eventName)}', 'png')">
+              🖼️ PNG
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 2. If multiple events, also offer Consolidated Certificate option
+    let consolidatedHtml = '';
+    if (events.length > 1) {
+      consolidatedHtml = `
+        <div class="multi-cert-card" style="margin-top: 1.5rem; border: 1px dashed var(--primary-light);">
+          <div class="multi-cert-main">
+            <div class="multi-cert-badge-row">
+              <span class="badge badge-primary">📜 Consolidated Certificate</span>
+              <span class="badge badge-success">${events.length} Events Combined</span>
+            </div>
+            <h3 class="multi-cert-title">Consolidated Multi-Event Certificate</h3>
+            <p class="multi-cert-desc">
+              Single certificate combining all registered participations and roles for <strong>${escapeHtml(data.student.name)}</strong>.
+            </p>
+            <div class="multi-cert-events">
+              <div class="events-tag-container">
+                ${events.map(e => `<span class="event-tag">${e.isCoordinator ? '⭐' : '🏆'} ${escapeHtml(e.eventName)}${e.isCoordinator ? ' (' + escapeHtml(e.designation || 'Coordinator') + ')' : ''}</span>`).join('')}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="multi-cert-actions">
-          <button type="button" class="btn btn-primary" onclick="previewConsolidatedCertificate()">
-            👁️ View Certificate
-          </button>
-          <button type="button" class="btn btn-success" onclick="downloadConsolidatedPDF()">
-            ⬇️ Download PDF
-          </button>
-          <button type="button" class="btn btn-secondary" onclick="downloadConsolidatedPNG()">
-            🖼️ Download PNG
-          </button>
+          <div class="multi-cert-actions">
+            <button type="button" class="btn btn-secondary" onclick="previewConsolidatedCertificate()">
+              👁️ View Combined
+            </button>
+            <button type="button" class="btn btn-success" onclick="downloadConsolidatedPDF()">
+              ⬇️ Combined PDF
+            </button>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }
+
+    certificateSection.innerHTML = cardsHtml + consolidatedHtml;
   }
 
   resultsContainer.style.display = 'block';
   resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Preview single event certificate (Student or Coordinator)
+async function previewSingleCertificate(eventId, eventName) {
+  if (!currentStudent) return;
+  currentEventTitle = eventName || 'Event Certificate';
+
+  showToast(`Rendering certificate for ${eventName}...`, 'info');
+
+  try {
+    const { res, data } = await safeFetch(`/api/certificates/data/${encodeURIComponent(currentStudent.roll_no)}/${eventId}`);
+
+    if (!res.ok || !data.success) {
+      showToast(data.message || 'Failed to load certificate data.', 'error');
+      return;
+    }
+
+    currentCertData = data.certificate;
+    await renderCertificateCanvas(data.certificate, eventName);
+
+    const isCoord = data.certificate.isCoordinator;
+    const modalTitle = isCoord ? `Coordinator Certificate: ${eventName}` : `Participation Certificate: ${eventName}`;
+    openModal(modalTitle, `${data.certificate.student.name} (${data.certificate.student.roll_no}) • Official Institutional Certificate`);
+  } catch (err) {
+    showToast('Failed to render certificate: ' + err.message, 'error');
+  }
+}
+
+// Download single event certificate directly
+async function downloadSingleCertificate(eventId, eventName, format = 'pdf') {
+  if (!currentStudent) return;
+  currentEventTitle = eventName || 'Certificate';
+  showToast(`Generating ${format.toUpperCase()} certificate...`, 'info');
+
+  try {
+    const { res, data } = await safeFetch(`/api/certificates/data/${encodeURIComponent(currentStudent.roll_no)}/${eventId}`);
+
+    if (!res.ok || !data.success) {
+      showToast(data.message || 'Failed to generate certificate.', 'error');
+      return;
+    }
+
+    currentCertData = data.certificate;
+    await renderCertificateCanvas(data.certificate, eventName);
+
+    if (format === 'pdf') {
+      downloadCertificatePDF();
+    } else {
+      downloadCertificateImage();
+    }
+  } catch (err) {
+    showToast('Download failed: ' + err.message, 'error');
+  }
 }
 
 // Fetch consolidated multi-event certificate and preview in modal
@@ -226,7 +326,7 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
   const canvas = document.getElementById('certificateCanvas');
   const ctx = canvas.getContext('2d');
 
-  const template = cert.template;
+  const template = cert.template || {};
   const cfg = template.config || {};
 
   canvas.width = cfg.canvas_width || 1024;
@@ -241,11 +341,10 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
     img.onerror = () => {
       const fallbackSrc = '/templates/svec_template.jpg';
       if (img.src && !img.src.includes(fallbackSrc)) {
-        console.warn('Template image failed to load, falling back to default:', template.file);
-        img.onerror = () => reject(new Error('Failed to load certificate template image: ' + template.file));
+        img.onerror = () => reject(new Error('Failed to load certificate template image'));
         img.src = fallbackSrc;
       } else {
-        reject(new Error('Failed to load certificate template image: ' + template.file));
+        reject(new Error('Failed to load certificate template image'));
       }
     };
     img.src = template.file || '/templates/svec_template.jpg';
@@ -253,6 +352,8 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
 
   // 1. Draw base certificate image
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
 
   // Helper to render text with styling
   function drawFieldText(text, fieldCfg, defaultFont) {
@@ -271,8 +372,46 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
     ctx.fillText(text, fieldCfg.x, fieldCfg.y);
   }
 
-  // 2. Render dynamic fields
-  // Student Name
+  // 2. COORDINATOR SPECIAL ADAPTATIONS ON MAIN TEMPLATE
+  if (isCoord) {
+    // 2a. Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
+    ctx.fillStyle = '#faf8f5';
+    ctx.beginPath();
+    ctx.roundRect(320, 285, 384, 26, 4);
+    ctx.fill();
+
+    ctx.font = '700 19px "Playfair Display", Georgia, serif';
+    ctx.fillStyle = '#7b1113';
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('OF  APPRECIATION', 512, 298);
+    ctx.letterSpacing = '0px';
+
+    // 2b. Add Prestigious Coordinator Insignia Banner at Top-Right
+    const desigText = (cert.designation || 'EVENT COORDINATOR').toUpperCase();
+    ctx.save();
+    ctx.textAlign = 'center';
+    const badgeW = Math.max(220, desigText.length * 9 + 40);
+    const badgeX = 860 - badgeW / 2;
+    const badgeY = 248;
+
+    ctx.fillStyle = 'rgba(123, 17, 19, 0.95)';
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY - 13, badgeW, 26, 13);
+    ctx.fill();
+
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.font = '700 10.5px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillText(`★  ${desigText}  ★`, 860, badgeY);
+    ctx.restore();
+  }
+
+  // 3. Render dynamic fields
+  // Student / Coordinator Name
   drawFieldText(cert.student.name, cfg.name, 'Playfair Display, serif');
 
   // Semester
@@ -284,23 +423,19 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
   // Roll Number
   drawFieldText(cert.student.roll_no, cfg.roll_no, 'Plus Jakarta Sans, sans-serif');
 
-  // Event name(s)
-  const eventText = eventDisplayString || (cert.event ? cert.event.name : '');
+  // Event name(s) and role
+  let eventText = eventDisplayString || (cert.event ? cert.event.name : '');
+  if (isCoord && !eventText.includes('Coordinator')) {
+    eventText = `${eventText} (${cert.designation || 'Student Coordinator'})`;
+  }
   drawFieldText(eventText, cfg.events, 'Plus Jakarta Sans, sans-serif');
 
-  // 3. Optional small security hash at bottom-left
-  if (cert.certificateId) {
-    ctx.font = '10px monospace';
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
-    ctx.textAlign = 'left';
-    ctx.fillText(`ID: ${cert.certificateId}`, 30, canvas.height - 18);
-  }
-}
-
-// Download PDF directly from button
-async function downloadCertificateDirect(eventId, eventName) {
-  await previewCertificate(eventId, eventName);
-  downloadCertificatePDF();
+  // 4. Security hash verification at bottom
+  ctx.font = '10px monospace';
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+  ctx.textAlign = 'left';
+  const certIdDisplay = cert.certificateId || `SVEC-${isCoord ? 'COORD' : 'CERT'}-${cert.student.roll_no}`;
+  ctx.fillText(`ID: ${certIdDisplay} | Issued: ${cert.issuedDate || 'Verified'} | Sri Vasavi Engg College`, 30, canvas.height - 18);
 }
 
 // Download current certificate as PDF using jsPDF

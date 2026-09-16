@@ -16,6 +16,32 @@ const ParticipationSchema = new mongoose.Schema({
   participated: {
     type: Boolean,
     default: true
+  },
+  role: {
+    type: String,
+    enum: ['Student', 'Coordinator', 'Student Coordinator', 'Faculty Coordinator', 'Organizing Committee', 'Volunteer'],
+    default: 'Student',
+    index: true
+  },
+  certificate_type: {
+    type: String,
+    enum: ['Participation', 'Appreciation', 'Coordination', 'Merit'],
+    default: 'Participation'
+  },
+  designation: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  certificate_id: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  issue_date: {
+    type: String,
+    trim: true,
+    default: ''
   }
 }, {
   timestamps: true

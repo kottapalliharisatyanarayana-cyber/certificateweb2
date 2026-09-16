@@ -64,14 +64,15 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
     }
 
     // Generate unique verifiable certificate ID & hash
+    const isCoord = (participation.role || '').toLowerCase().includes('coordinator');
     const certHash = crypto
       .createHash('sha256')
       .update(`${student.roll_no}-${event._id}-${participation._id}`)
       .digest('hex')
-      .substring(0, 12)
+      .substring(0, 10)
       .toUpperCase();
 
-    const certificateId = `SVEC-CERT-${certHash}`;
+    const certificateId = participation.certificate_id || `SVEC-${isCoord ? 'COORD' : 'CERT'}-${certHash}`;
 
     res.json({
       success: true,
@@ -85,11 +86,17 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
           semester: student.semester,
           branch: student.branch
         },
+        role: participation.role || 'Student',
+        isCoordinator: isCoord,
+        designation: participation.designation || (isCoord ? 'Student Coordinator' : 'Participant'),
+        certificateType: participation.certificate_type || (isCoord ? 'Appreciation' : 'Participation'),
         event: {
           id: event._id,
           name: event.event_name,
           date: event.event_date || 'N/A',
-          description: event.description || ''
+          description: event.description || '',
+          category: event.category || 'Separate Event',
+          customOccasion: event.custom_occasion || ''
         },
         template: {
           id: template._id,
@@ -97,7 +104,7 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
           file: resolveTemplateFile(template.template_file),
           config: template.fields_config
         },
-        issuedDate: new Date().toLocaleDateString('en-US', {
+        issuedDate: participation.issue_date || new Date().toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
           day: 'numeric'
@@ -128,7 +135,16 @@ router.get('/all-data/:roll_no', async (req, res) => {
       participated: true
     }).populate('event');
 
-    const validEvents = participations.map(p => p.event).filter(Boolean);
+    const validParticipations = participations.filter(p => p.event != null);
+    const validEvents = validParticipations.map(p => ({
+      id: p.event._id,
+      name: p.event.event_name,
+      date: p.event.event_date || '',
+      role: p.role || 'Student',
+      isCoordinator: (p.role || '').toLowerCase().includes('coordinator'),
+      designation: p.designation || ((p.role || '').toLowerCase().includes('coordinator') ? 'Student Coordinator' : 'Participant'),
+      certificateType: p.certificate_type || ((p.role || '').toLowerCase().includes('coordinator') ? 'Appreciation' : 'Participation')
+    }));
 
     let template = await Template.findOne({ is_active: true });
     if (!template) template = await Template.findOne();
@@ -137,10 +153,10 @@ router.get('/all-data/:roll_no', async (req, res) => {
       .createHash('sha256')
       .update(`${student.roll_no}-ALL-${student._id}`)
       .digest('hex')
-      .substring(0, 12)
+      .substring(0, 10)
       .toUpperCase();
 
-    const combinedEventNames = validEvents.map(e => e.event_name).join(', ');
+    const combinedEventNames = validEvents.map(e => e.name).join(', ');
 
     res.json({
       success: true,
@@ -154,11 +170,7 @@ router.get('/all-data/:roll_no', async (req, res) => {
           semester: student.semester,
           branch: student.branch
         },
-        events: validEvents.map(e => ({
-          id: e._id,
-          name: e.event_name,
-          date: e.event_date || ''
-        })),
+        events: validEvents,
         combinedEventNames,
         template: template ? {
           id: template._id,

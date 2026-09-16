@@ -49,13 +49,23 @@ router.get('/search/:roll_no', async (req, res) => {
         branch: student.branch
       },
       participationsCount: validParticipations.length,
-      events: validParticipations.map(p => ({
-        participationId: p._id,
-        eventId: p.event._id,
-        eventName: p.event.event_name,
-        eventDate: p.event.event_date || 'N/A',
-        description: p.event.description || ''
-      })),
+      events: validParticipations.map(p => {
+        const isCoord = (p.role || '').toLowerCase().includes('coordinator');
+        return {
+          participationId: p._id,
+          eventId: p.event._id,
+          eventName: p.event.event_name,
+          eventDate: p.event.event_date || 'N/A',
+          description: p.event.description || '',
+          category: p.event.category || 'Separate Event',
+          role: p.role || 'Student',
+          isCoordinator: isCoord,
+          designation: p.designation || (isCoord ? 'Student Coordinator' : 'Participant'),
+          certificateType: p.certificate_type || (isCoord ? 'Appreciation' : 'Participation'),
+          certificateId: p.certificate_id || '',
+          issueDate: p.issue_date || (p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A')
+        };
+      }),
       hasActiveTemplate: !!activeTemplate,
       templateName: activeTemplate ? activeTemplate.template_name : 'Default Certificate'
     });

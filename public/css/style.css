@@ -582,6 +582,12 @@ a:hover {
   color: #92400e;
 }
 
+.badge-coordinator {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fed7aa;
+}
+
 .event-actions {
   display: flex;
   align-items: center;
@@ -623,6 +629,17 @@ a:hover {
 
 .btn-secondary:hover {
   background: #e2e8f0;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-subtle);
+  color: var(--text-main);
 }
 
 .btn-success {
