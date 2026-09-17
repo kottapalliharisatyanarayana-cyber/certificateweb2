@@ -425,15 +425,17 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
   // Roll Number
   drawFieldText(cert.student.roll_no, cfg.roll_no, 'Plus Jakarta Sans, sans-serif');
 
-  // Event name(s) and role
-  let eventText = eventDisplayString || (cert.event ? cert.event.name : '');
-  if (isCoord && !isDedicatedCoordTemplate && !eventText.includes('Coordinator')) {
-    eventText = `${eventText} (${cert.designation || 'Student Coordinator'})`;
+  // Event name(s) and role - only on participation templates (omitted for dedicated coordinator templates)
+  if (!isDedicatedCoordTemplate) {
+    let eventText = eventDisplayString || (cert.event ? cert.event.name : '');
+    if (isCoord && !eventText.includes('Coordinator')) {
+      eventText = `${eventText} (${cert.designation || 'Student Coordinator'})`;
+    }
+    drawFieldText(eventText, cfg.events, 'Plus Jakarta Sans, sans-serif');
   }
-  drawFieldText(eventText, cfg.events, 'Plus Jakarta Sans, sans-serif');
 
-  // Coordinator Designation field if template provides designated coordinates
-  if (isCoord && cfg.designation) {
+  // Coordinator Designation field if template provides designated coordinates (and not dedicated coordinator template)
+  if (isCoord && !isDedicatedCoordTemplate && cfg.designation) {
     const desigDisplay = cert.designation || 'Student Coordinator';
     drawFieldText(desigDisplay, cfg.designation, 'Plus Jakarta Sans, sans-serif');
   }

@@ -951,7 +951,8 @@ function updateStudioUIState() {
   const typeBadge = document.getElementById('studioTypeBadge');
   const activeBadge = document.getElementById('studioActiveBadge');
   const selector = document.getElementById('studioTemplateSelector');
-  const groupDesig = document.getElementById('group-coord-designation');
+  const groupEvents = document.getElementById('group-events-line');
+  const noticeCoord = document.getElementById('coordinatorTemplateNotice');
 
   const isCoord = (currentTemplateType === 'coordination');
 
@@ -975,8 +976,14 @@ function updateStudioUIState() {
     selector.value = currentTemplate._id;
   }
 
-  if (groupDesig) {
-    groupDesig.style.display = isCoord ? 'block' : 'none';
+  // Events line is ONLY for Participation templates, hidden for Coordinator template
+  if (groupEvents) {
+    groupEvents.style.display = isCoord ? 'none' : 'block';
+  }
+
+  // Show informational notice for Coordinator template
+  if (noticeCoord) {
+    noticeCoord.style.display = isCoord ? 'block' : 'none';
   }
 }
 
@@ -1004,15 +1011,14 @@ function populateStudioInputs(cfg, templateType) {
   setInputValue('coord-events-size', cfg.events?.fontSize || 16);
 
   const isCoord = (templateType === 'coordination');
-  const groupDesig = document.getElementById('group-coord-designation');
-  if (groupDesig) {
-    groupDesig.style.display = isCoord ? 'block' : 'none';
+  const groupEvents = document.getElementById('group-events-line');
+  if (groupEvents) {
+    groupEvents.style.display = isCoord ? 'none' : 'block';
   }
 
-  if (isCoord) {
-    setInputValue('coord-designation-x', cfg.designation?.x || 512);
-    setInputValue('coord-designation-y', cfg.designation?.y || 440);
-    setInputValue('coord-designation-size', cfg.designation?.fontSize || 15);
+  const noticeCoord = document.getElementById('coordinatorTemplateNotice');
+  if (noticeCoord) {
+    noticeCoord.style.display = isCoord ? 'block' : 'none';
   }
 }
 
@@ -1104,26 +1110,15 @@ async function drawStudioPreview() {
   ctx.fillStyle = '#1a1a2e';
   ctx.fillText('22A81A0501', rollX, rollY);
 
-  // Events line
-  ctx.font = `bold ${evtSize}px "Plus Jakarta Sans", sans-serif`;
-  ctx.fillStyle = '#7b1113';
-  ctx.fillText('Tech Trifecta & AI Summit', evtX, evtY);
-
-  // Coordinator Designation if coordination template
-  if (currentTemplate.template_type === 'coordination') {
-    const desigX = getInputValue('coord-designation-x', 512);
-    const desigY = getInputValue('coord-designation-y', 440);
-    const desigSize = getInputValue('coord-designation-size', 15);
-
-    ctx.font = `bold ${desigSize}px "Plus Jakarta Sans", sans-serif`;
+  // Events line - only rendered for participation templates, NOT coordination templates
+  if (currentTemplate.template_type !== 'coordination') {
+    ctx.font = `bold ${evtSize}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = '#7b1113';
-    ctx.textAlign = 'center';
-    ctx.fillText('Student Coordinator', desigX, desigY);
-    ctx.textAlign = 'left';
+    ctx.fillText('Tech Trifecta & AI Summit', evtX, evtY);
   }
 }
 
-// Save template coordinates (preserves designation for coordination templates)
+// Save template coordinates (preserves clean coordinator template without events/designation)
 async function saveTemplateCoordinates() {
   if (!currentTemplate) return;
 
@@ -1167,8 +1162,12 @@ async function saveTemplateCoordinates() {
       fontWeight: 'bold',
       color: '#1a1a2e',
       align: 'left'
-    },
-    events: {
+    }
+  };
+
+  // Events line is only stored for participation templates
+  if (!isCoord) {
+    updatedConfig.events = {
       x: getInputValue('coord-events-x', 400),
       y: getInputValue('coord-events-y', 409),
       fontSize: getInputValue('coord-events-size', 16),
@@ -1176,18 +1175,6 @@ async function saveTemplateCoordinates() {
       fontWeight: 'bold',
       color: '#7b1113',
       align: 'left'
-    }
-  };
-
-  if (isCoord) {
-    updatedConfig.designation = {
-      x: getInputValue('coord-designation-x', 512),
-      y: getInputValue('coord-designation-y', 440),
-      fontSize: getInputValue('coord-designation-size', 15),
-      fontFamily: 'Inter, sans-serif',
-      fontWeight: 'bold',
-      color: '#7b1113',
-      align: 'center'
     };
   }
 
@@ -1220,12 +1207,11 @@ function resetStudioCoordinates() {
     name: { x: 350, y: 355, fontSize: 20 },
     semester: { x: 125, y: 382, fontSize: 16 },
     branch: { x: 360, y: 382, fontSize: 16 },
-    roll_no: { x: 690, y: 382, fontSize: 16 },
-    events: { x: 400, y: 409, fontSize: 16 }
+    roll_no: { x: 690, y: 382, fontSize: 16 }
   };
 
-  if (isCoord) {
-    defaults.designation = { x: 512, y: 440, fontSize: 15 };
+  if (!isCoord) {
+    defaults.events = { x: 400, y: 409, fontSize: 16 };
   }
 
   populateStudioInputs(defaults, currentTemplate?.template_type);
@@ -2316,50 +2302,39 @@ async function drawAdminCertificateCanvas(cert) {
 
   ctx.textBaseline = 'middle';
 
-  // 2. COORDINATOR ADAPTATIONS
-  if (isCoord) {
-    if (isDedicatedCoordTemplate) {
-      // Dedicated coordinator template already features "Certificate of Coordination"
-      // Render Coordinator Designation centered at (512, 440)
-      const desig = cert.designation || 'Student Coordinator';
-      ctx.font = 'bold 15px "Plus Jakarta Sans", sans-serif';
-      ctx.fillStyle = '#7b1113';
-      ctx.textAlign = 'center';
-      ctx.fillText(desig, 512, 440);
-      ctx.textAlign = 'left';
-    } else {
-      // Fallback only: Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
-      ctx.fillStyle = '#faf8f5';
-      ctx.beginPath();
-      ctx.roundRect(320, 285, 384, 26, 4);
-      ctx.fill();
+  // 2. COORDINATOR ADAPTATIONS (Fallback only when rendering coordinator on participation template)
+  if (isCoord && !isDedicatedCoordTemplate) {
+    // Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
+    ctx.fillStyle = '#faf8f5';
+    ctx.beginPath();
+    ctx.roundRect(320, 285, 384, 26, 4);
+    ctx.fill();
 
-      ctx.font = '700 19px "Playfair Display", Georgia, serif';
-      ctx.fillStyle = '#7b1113';
-      ctx.textAlign = 'center';
-      ctx.letterSpacing = '3px';
-      ctx.fillText('OF  APPRECIATION', 512, 298);
-      ctx.letterSpacing = '0px';
+    ctx.font = '700 19px "Playfair Display", Georgia, serif';
+    ctx.fillStyle = '#7b1113';
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('OF  APPRECIATION', 512, 298);
+    ctx.letterSpacing = '0px';
 
-      // Ribbon badge top right
-      const desigText = (cert.designation || 'EVENT COORDINATOR').toUpperCase();
-      ctx.save();
-      ctx.textAlign = 'center';
-      const badgeW = Math.max(220, desigText.length * 9 + 40);
-      const badgeX = 860 - badgeW / 2;
-      const badgeY = 248;
-      ctx.fillStyle = 'rgba(123, 17, 19, 0.95)';
-      ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY - 13, badgeW, 26, 13);
-      ctx.fill();
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.font = '700 10.5px "Plus Jakarta Sans", sans-serif';
-      ctx.fillStyle = '#fef3c7';
-      ctx.fillText(`★  ${desigText}  ★`, 860, badgeY);
-      ctx.restore();
-    }
+    // Ribbon badge top right
+    const desigText = (cert.designation || 'EVENT COORDINATOR').toUpperCase();
+    ctx.save();
+    ctx.textAlign = 'center';
+    const badgeW = Math.max(220, desigText.length * 9 + 40);
+    const badgeX = 860 - badgeW / 2;
+    const badgeY = 248;
+    ctx.fillStyle = 'rgba(123, 17, 19, 0.95)';
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY - 13, badgeW, 26, 13);
+    ctx.fill();
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.font = '700 10.5px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillText(`★  ${desigText}  ★`, 860, badgeY);
+    ctx.restore();
   }
 
   // 3. Render Recipient Dynamic Data
@@ -2381,14 +2356,15 @@ async function drawAdminCertificateCanvas(cert) {
   // Roll Number / Coordinator ID
   ctx.fillText(student.roll_no || '-', rollX, rollY);
 
-  // Event & Role display
-  ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#7b1113';
-
-  if (isCoord && !isDedicatedCoordTemplate) {
-    ctx.fillText(`${eventName} (${cert.designation || 'Student Coordinator'})`, eventX, eventY);
-  } else {
-    ctx.fillText(eventName, eventX, eventY);
+  // Event & Role display: ONLY on participation template (dedicated coordinator template omits events line)
+  if (!isDedicatedCoordTemplate) {
+    ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#7b1113';
+    if (isCoord) {
+      ctx.fillText(`${eventName} (${cert.designation || 'Student Coordinator'})`, eventX, eventY);
+    } else {
+      ctx.fillText(eventName, eventX, eventY);
+    }
   }
 
   // 4. Security Verification ID & Issue Date at Bottom

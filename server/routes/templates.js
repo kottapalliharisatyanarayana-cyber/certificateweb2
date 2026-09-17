@@ -220,8 +220,12 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
         fontWeight: 'bold',
         color: '#1a1a2e',
         align: 'left'
-      },
-      events: {
+      }
+    };
+
+    // Events line is only added for participation templates (coordination templates omit it)
+    if (assignedType !== 'coordination') {
+      defaultFieldsConfig.events = {
         x: 400,
         y: 409,
         fontSize: 16,
@@ -229,18 +233,6 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
         fontWeight: 'bold',
         color: '#7b1113',
         align: 'left'
-      }
-    };
-
-    if (assignedType === 'coordination') {
-      defaultFieldsConfig.designation = {
-        x: 512,
-        y: 440,
-        fontSize: 15,
-        fontFamily: 'Inter, sans-serif',
-        fontWeight: 'bold',
-        color: '#7b1113',
-        align: 'center'
       };
     }
 

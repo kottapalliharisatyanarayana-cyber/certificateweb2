@@ -203,7 +203,7 @@ const seedDefaults = async () => {
       }
     }
 
-    // 3. Seed Default Coordination Template if none exists
+    // 3. Seed Default Coordination Template if none exists (Clean institutional format: Name, Sem, Branch, Roll)
     const coordinationTemplate = await Template.findOne({ template_type: 'coordination' });
     if (!coordinationTemplate) {
       await Template.create({
@@ -249,28 +249,16 @@ const seedDefaults = async () => {
             fontWeight: 'bold',
             color: '#1a1a2e',
             align: 'left'
-          },
-          events: {
-            x: 400,
-            y: 409,
-            fontSize: 16,
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 'bold',
-            color: '#7b1113',
-            align: 'left'
-          },
-          designation: {
-            x: 512,
-            y: 440,
-            fontSize: 15,
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 'bold',
-            color: '#7b1113',
-            align: 'center'
           }
         }
       });
-      console.log('⭐ Default Coordination template seeded!');
+      console.log('⭐ Default Coordination template seeded (clean institutional format)!');
+    } else {
+      // Ensure existing coordination templates have events & designation removed
+      await Template.updateMany(
+        { template_type: 'coordination' },
+        { $unset: { 'fields_config.events': '', 'fields_config.designation': '' } }
+      );
     }
   } catch (err) {
     console.error('Error seeding defaults:', err.message);

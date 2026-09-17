@@ -891,8 +891,8 @@
               </div>
             </div>
 
-            <!-- EVENTS LINE CONTROLS -->
-            <div class="field-slider-group">
+            <!-- EVENTS LINE CONTROLS (Participation Templates Only) -->
+            <div id="group-events-line" class="field-slider-group">
               <h4><span>Events Line</span> <span id="label-events-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
               <div class="form-row">
                 <div>
@@ -910,26 +910,9 @@
               </div>
             </div>
 
-            <!-- COORDINATOR DESIGNATION CONTROLS (Active for Coordination templates) -->
-            <div id="group-coord-designation" class="field-slider-group" style="display: none; border-left: 3px solid #b45309; background: #fffaf0;">
-              <h4><span style="color: #92400e;">⭐ Coordinator Designation</span> <span id="label-designation-coords" style="font-size: 0.75rem; color: #b45309;"></span></h4>
-              <div class="form-row">
-                <div>
-                  <label style="font-size: 0.75rem;">X</label>
-                  <input type="number" id="coord-designation-x" class="form-control" oninput="updateStudioLive()">
-                </div>
-                <div>
-                  <label style="font-size: 0.75rem;">Y</label>
-                  <input type="number" id="coord-designation-y" class="form-control" oninput="updateStudioLive()">
-                </div>
-                <div>
-                  <label style="font-size: 0.75rem;">Size</label>
-                  <input type="number" id="coord-designation-size" class="form-control" oninput="updateStudioLive()">
-                </div>
-              </div>
-              <small style="font-size: 0.725rem; color: #92400e; display: block; margin-top: 0.35rem;">
-                Designation text (e.g. "Student Coordinator") printed on the coordinator certificate.
-              </small>
+            <!-- COORDINATOR NOTICE (Displayed when Coordinator Template is active) -->
+            <div id="coordinatorTemplateNotice" style="display: none; background: #fffaf0; border: 1px solid #fed7aa; padding: 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: #92400e;">
+              ℹ️ <strong>Coordinator Template:</strong> Clean institutional certificate. Only recipient details (Name, Semester, Branch, Roll Number) are printed. Events Line and Designation are omitted.
             </div>
 
           </div>
