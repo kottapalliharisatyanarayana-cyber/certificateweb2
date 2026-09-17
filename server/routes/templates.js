@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Template = require('../models/Template');
+const Event = require('../models/Event');
 const authMiddleware = require('../utils/authMiddleware');
 
 const os = require('os');
@@ -60,10 +61,31 @@ function resolveTemplateFile(file) {
   return file;
 }
 
-// GET /api/templates/active (Public / Student & Admin: Get the active template config)
+function formatTemplateData(template) {
+  if (!template) return null;
+  const tpl = template.toObject ? template.toObject() : { ...template };
+  tpl.template_file = resolveTemplateFile(tpl.template_file);
+  tpl.template_type = tpl.template_type || 'participation';
+  return tpl;
+}
+
+// GET /api/templates/active (Public / Student & Admin: Get active template(s))
+// Supports ?type=participation or ?type=coordination
 router.get('/active', async (req, res) => {
   try {
-    let template = await Template.findOne({ is_active: true });
+    const requestedType = req.query.type; // 'participation' or 'coordination'
+
+    let template = null;
+    if (requestedType) {
+      template = await Template.findOne({ template_type: requestedType, is_active: true });
+      if (!template) {
+        template = await Template.findOne({ template_type: requestedType });
+      }
+    }
+
+    if (!template) {
+      template = await Template.findOne({ is_active: true });
+    }
     if (!template) {
       template = await Template.findOne();
     }
@@ -75,25 +97,68 @@ router.get('/active', async (req, res) => {
       });
     }
 
-    const templateData = template.toObject ? template.toObject() : { ...template };
-    templateData.template_file = resolveTemplateFile(templateData.template_file);
+    // Also fetch both active templates for dual-mode studio
+    const partTpl = await Template.findOne({ template_type: 'participation', is_active: true })
+      || await Template.findOne({ template_type: 'participation' });
+    const coordTpl = await Template.findOne({ template_type: 'coordination', is_active: true })
+      || await Template.findOne({ template_type: 'coordination' });
 
     res.json({
       success: true,
-      template: templateData
+      template: formatTemplateData(template),
+      participationTemplate: formatTemplateData(partTpl),
+      coordinationTemplate: formatTemplateData(coordTpl)
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// GET /api/templates (Admin: List all templates)
+// GET /api/templates (Admin: List all templates with event usage)
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const templates = await Template.find().sort({ createdAt: -1 });
+    const templates = await Template.find().sort({ createdAt: -1 }).lean();
+
+    // Map how many events use each template
+    const events = await Event.find().lean();
+    const usageMap = {};
+
+    events.forEach(e => {
+      if (e.template) {
+        const id = e.template.toString();
+        usageMap[id] = (usageMap[id] || 0) + 1;
+      }
+      if (e.coordinator_template) {
+        const id = e.coordinator_template.toString();
+        usageMap[id] = (usageMap[id] || 0) + 1;
+      }
+    });
+
+    const enrichedTemplates = templates.map(t => ({
+      ...formatTemplateData(t),
+      eventUsageCount: usageMap[t._id.toString()] || 0
+    }));
+
     res.json({
       success: true,
-      templates
+      templates: enrichedTemplates
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/templates/:id (Admin: Get specific template by ID)
+router.get('/:id', authMiddleware, async (req, res) => {
+  try {
+    const template = await Template.findById(req.params.id);
+    if (!template) {
+      return res.status(404).json({ success: false, message: 'Template not found.' });
+    }
+
+    res.json({
+      success: true,
+      template: formatTemplateData(template)
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -111,6 +176,9 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
     }
 
     const templateName = req.body.template_name || req.file.originalname.replace(/\.[^/.]+$/, '');
+    const templateType = (req.body.template_type || 'participation').toLowerCase();
+    const validTypes = ['participation', 'coordination', 'general'];
+    const assignedType = validTypes.includes(templateType) ? templateType : 'participation';
     const relativeFilePath = `/uploads/templates/${req.file.filename}`;
 
     // Default configuration for text placement
@@ -164,17 +232,48 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
       }
     };
 
+    if (assignedType === 'coordination') {
+      defaultFieldsConfig.designation = {
+        x: 512,
+        y: 440,
+        fontSize: 15,
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: 'bold',
+        color: '#7b1113',
+        align: 'center'
+      };
+    }
+
     const newTemplate = await Template.create({
       template_name: templateName,
       template_file: relativeFilePath,
+      template_type: assignedType,
       fields_config: defaultFieldsConfig,
       is_active: false
     });
 
+    // If an event_id was passed, optionally link this template directly to the event
+    let linkedEvent = null;
+    if (req.body.event_id) {
+      const event = await Event.findById(req.body.event_id);
+      if (event) {
+        const targetRole = req.body.event_role_target || (assignedType === 'coordination' ? 'coordination' : 'participation');
+        if (targetRole === 'coordination') {
+          event.coordinator_template = newTemplate._id;
+        } else {
+          event.template = newTemplate._id;
+        }
+        event.use_main_template = false;
+        await event.save();
+        linkedEvent = event;
+      }
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Certificate template uploaded successfully.',
-      template: newTemplate
+      message: `Certificate template uploaded successfully as "${assignedType}" template.`,
+      template: formatTemplateData(newTemplate),
+      linkedEvent: linkedEvent ? { id: linkedEvent._id, name: linkedEvent.event_name } : null
     });
   } catch (err) {
     console.error('Template upload error:', err);
@@ -185,10 +284,10 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
   }
 });
 
-// PUT /api/templates/:id (Admin: Update template fields config / name)
+// PUT /api/templates/:id (Admin: Update template fields config / name / type)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { template_name, fields_config } = req.body;
+    const { template_name, fields_config, template_type, description } = req.body;
     const template = await Template.findById(req.params.id);
 
     if (!template) {
@@ -196,6 +295,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     if (template_name) template.template_name = template_name.trim();
+    if (template_type) template.template_type = template_type;
+    if (description !== undefined) template.description = description.trim();
     if (fields_config) template.fields_config = fields_config;
 
     await template.save();
@@ -203,31 +304,33 @@ router.put('/:id', authMiddleware, async (req, res) => {
     res.json({
       success: true,
       message: 'Template configuration updated successfully.',
-      template
+      template: formatTemplateData(template)
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// PUT /api/templates/:id/activate (Admin: Set as active template)
+// PUT /api/templates/:id/activate (Admin: Set as active template for its type)
 router.put('/:id/activate', authMiddleware, async (req, res) => {
   try {
-    await Template.updateMany({}, { is_active: false });
-    const template = await Template.findByIdAndUpdate(
-      req.params.id,
-      { is_active: true },
-      { new: true }
-    );
-
+    const template = await Template.findById(req.params.id);
     if (!template) {
       return res.status(404).json({ success: false, message: 'Template not found.' });
     }
 
+    const type = template.template_type || 'participation';
+
+    // Deactivate existing templates of the same type
+    await Template.updateMany({ template_type: type }, { is_active: false });
+
+    template.is_active = true;
+    await template.save();
+
     res.json({
       success: true,
-      message: `Template "${template.template_name}" is now the active certificate template.`,
-      template
+      message: `Template "${template.template_name}" is now the active ${type} template.`,
+      template: formatTemplateData(template)
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -242,20 +345,24 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Template not found.' });
     }
 
-    // Prevent deleting the default seeded template or the only active template if it's the only one
-    const count = await Template.countDocuments();
+    const type = template.template_type || 'participation';
+    const count = await Template.countDocuments({ template_type: type });
     if (count <= 1) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete the only certificate template in the system.'
+        message: `Cannot delete the only "${type}" certificate template in the system.`
       });
     }
 
+    // Unbind from any events that reference it
+    await Event.updateMany({ template: template._id }, { $set: { template: null } });
+    await Event.updateMany({ coordinator_template: template._id }, { $set: { coordinator_template: null } });
+
     await Template.findByIdAndDelete(req.params.id);
 
-    // If active was deleted, make another template active
+    // If active was deleted, make another template of same type active
     if (template.is_active) {
-      await Template.findOneAndUpdate({}, { is_active: true });
+      await Template.findOneAndUpdate({ template_type: type }, { is_active: true });
     }
 
     res.json({

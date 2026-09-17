@@ -4,12 +4,17 @@ const crypto = require('crypto');
 const Event = require('../models/Event');
 const Student = require('../models/Student');
 const Participation = require('../models/Participation');
+const Template = require('../models/Template');
 const authMiddleware = require('../utils/authMiddleware');
 
-// GET /api/events (Public / Admin: List all events with participant & coordinator count)
+// GET /api/events (Public / Admin: List all events with participant & coordinator count & templates)
 router.get('/', async (req, res) => {
   try {
-    const events = await Event.find().sort({ createdAt: -1 }).lean();
+    const events = await Event.find()
+      .populate('template', 'template_name template_file template_type')
+      .populate('coordinator_template', 'template_name template_file template_type')
+      .sort({ createdAt: -1 })
+      .lean();
 
     // Attach participant & coordinator counts
     const eventIds = events.map(e => e._id);
@@ -60,10 +65,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/events (Admin: Create Event)
+// POST /api/events (Admin: Create Event with template assignments)
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { event_name, event_date, description } = req.body;
+    const { event_name, event_date, description, template, coordinator_template, use_main_template } = req.body;
     if (!event_name || !event_name.trim()) {
       return res.status(400).json({
         success: false,
@@ -80,16 +85,27 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
+    const useMain = use_main_template !== undefined 
+      ? Boolean(use_main_template) 
+      : (!template && !coordinator_template);
+
     const newEvent = await Event.create({
       event_name: trimmedName,
       event_date: (event_date || '').trim(),
-      description: (description || '').trim()
+      description: (description || '').trim(),
+      use_main_template: useMain,
+      template: template || null,
+      coordinator_template: coordinator_template || null
     });
+
+    const populatedEvent = await Event.findById(newEvent._id)
+      .populate('template', 'template_name template_file template_type')
+      .populate('coordinator_template', 'template_name template_file template_type');
 
     res.status(201).json({
       success: true,
       message: 'Event created successfully.',
-      event: newEvent
+      event: populatedEvent
     });
   } catch (err) {
     res.status(500).json({
@@ -99,10 +115,10 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /api/events/:id (Admin: Update Event)
+// PUT /api/events/:id (Admin: Update Event & template assignments)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { event_name, event_date, description } = req.body;
+    const { event_name, event_date, description, template, coordinator_template, use_main_template } = req.body;
     const event = await Event.findById(req.params.id);
 
     if (!event) {
@@ -115,12 +131,26 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (event_date !== undefined) event.event_date = event_date.trim();
     if (description !== undefined) event.description = description.trim();
 
+    if (use_main_template !== undefined) {
+      event.use_main_template = Boolean(use_main_template);
+    }
+    if (template !== undefined) {
+      event.template = template ? template : null;
+    }
+    if (coordinator_template !== undefined) {
+      event.coordinator_template = coordinator_template ? coordinator_template : null;
+    }
+
     await event.save();
+
+    const populatedEvent = await Event.findById(event._id)
+      .populate('template', 'template_name template_file template_type')
+      .populate('coordinator_template', 'template_name template_file template_type');
 
     res.json({
       success: true,
       message: 'Event updated successfully.',
-      event
+      event: populatedEvent
     });
   } catch (err) {
     res.status(500).json({
@@ -172,7 +202,9 @@ router.get('/:id/participants', authMiddleware, async (req, res) => {
 // GET /api/events/:id/certificates (Admin: List all certificates for an event with role breakdown)
 router.get('/:id/certificates', authMiddleware, async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findById(req.params.id)
+      .populate('template', 'template_name template_file template_type')
+      .populate('coordinator_template', 'template_name template_file template_type');
     if (!event) {
       return res.status(404).json({ success: false, message: 'Event not found.' });
     }
@@ -233,7 +265,19 @@ router.get('/:id/certificates', authMiddleware, async (req, res) => {
         description: event.description || '',
         category: event.category || 'Separate Event',
         customOccasion: event.custom_occasion || '',
-        useMainTemplate: event.use_main_template !== false
+        useMainTemplate: event.use_main_template !== false,
+        template: event.template ? {
+          id: event.template._id,
+          name: event.template.template_name,
+          file: event.template.template_file,
+          type: event.template.template_type
+        } : null,
+        coordinatorTemplate: event.coordinator_template ? {
+          id: event.coordinator_template._id,
+          name: event.coordinator_template.template_name,
+          file: event.coordinator_template.template_file,
+          type: event.coordinator_template.template_type
+        } : null
       },
       counts: {
         total: formattedCerts.length,

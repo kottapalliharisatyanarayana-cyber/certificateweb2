@@ -31,6 +31,16 @@ const EventSchema = new mongoose.Schema({
   use_main_template: {
     type: Boolean,
     default: true
+  },
+  template: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Template',
+    default: null
+  },
+  coordinator_template: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Template',
+    default: null
   }
 }, {
   timestamps: true

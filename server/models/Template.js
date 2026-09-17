@@ -20,9 +20,22 @@ const TemplateSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
     index: true
+  },
+  template_type: {
+    type: String,
+    enum: ['participation', 'coordination', 'general'],
+    default: 'participation',
+    index: true
+  },
+  description: {
+    type: String,
+    trim: true,
+    default: ''
   }
 }, {
   timestamps: true
 });
+
+TemplateSchema.index({ template_type: 1, is_active: 1 });
 
 module.exports = mongoose.models.Template || mongoose.model('Template', TemplateSchema);

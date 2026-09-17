@@ -50,8 +50,45 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
       });
     }
 
-    // Get active template
-    let template = await Template.findOne({ is_active: true });
+    // Determine if recipient is coordinator
+    const isCoord = (participation.role || '').toLowerCase().includes('coordinator')
+      || participation.certificate_type === 'Coordination';
+
+    // Resolve the appropriate template (Event-specific or Type-specific active)
+    let template = null;
+
+    if (isCoord) {
+      // 1. If event has dedicated coordinator template and custom templates enabled
+      if (!event.use_main_template && event.coordinator_template) {
+        template = await Template.findById(event.coordinator_template);
+      }
+      // 2. Default active Coordination template
+      if (!template) {
+        template = await Template.findOne({ template_type: 'coordination', is_active: true });
+      }
+      // 3. Any Coordination template
+      if (!template) {
+        template = await Template.findOne({ template_type: 'coordination' });
+      }
+    } else {
+      // 1. If event has dedicated participant template and custom templates enabled
+      if (!event.use_main_template && event.template) {
+        template = await Template.findById(event.template);
+      }
+      // 2. Default active Participation template
+      if (!template) {
+        template = await Template.findOne({ template_type: 'participation', is_active: true });
+      }
+      // 3. Any Participation template
+      if (!template) {
+        template = await Template.findOne({ template_type: 'participation' });
+      }
+    }
+
+    // Fallbacks if not resolved
+    if (!template) {
+      template = await Template.findOne({ is_active: true });
+    }
     if (!template) {
       template = await Template.findOne();
     }
@@ -64,7 +101,6 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
     }
 
     // Generate unique verifiable certificate ID & hash
-    const isCoord = (participation.role || '').toLowerCase().includes('coordinator');
     const certHash = crypto
       .createHash('sha256')
       .update(`${student.roll_no}-${event._id}-${participation._id}`)
@@ -96,11 +132,13 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
           date: event.event_date || 'N/A',
           description: event.description || '',
           category: event.category || 'Separate Event',
-          customOccasion: event.custom_occasion || ''
+          customOccasion: event.custom_occasion || '',
+          useMainTemplate: event.use_main_template !== false
         },
         template: {
           id: template._id,
           name: template.template_name,
+          type: template.template_type || (isCoord ? 'coordination' : 'participation'),
           file: resolveTemplateFile(template.template_file),
           config: template.fields_config
         },

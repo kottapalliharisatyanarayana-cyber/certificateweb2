@@ -354,6 +354,7 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
   const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
+  const isDedicatedCoordTemplate = (template.type === 'coordination');
 
   // Helper to render text with styling
   function drawFieldText(text, fieldCfg, defaultFont) {
@@ -372,8 +373,9 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
     ctx.fillText(text, fieldCfg.x, fieldCfg.y);
   }
 
-  // 2. COORDINATOR SPECIAL ADAPTATIONS ON MAIN TEMPLATE
-  if (isCoord) {
+  // 2. COORDINATOR ADAPTATIONS (Legacy participation template fallback only)
+  // If template is dedicated coordination template, the background already has proper wording.
+  if (isCoord && !isDedicatedCoordTemplate) {
     // 2a. Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
     ctx.fillStyle = '#faf8f5';
     ctx.beginPath();
@@ -425,10 +427,16 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
 
   // Event name(s) and role
   let eventText = eventDisplayString || (cert.event ? cert.event.name : '');
-  if (isCoord && !eventText.includes('Coordinator')) {
+  if (isCoord && !isDedicatedCoordTemplate && !eventText.includes('Coordinator')) {
     eventText = `${eventText} (${cert.designation || 'Student Coordinator'})`;
   }
   drawFieldText(eventText, cfg.events, 'Plus Jakarta Sans, sans-serif');
+
+  // Coordinator Designation field if template provides designated coordinates
+  if (isCoord && cfg.designation) {
+    const desigDisplay = cert.designation || 'Student Coordinator';
+    drawFieldText(desigDisplay, cfg.designation, 'Plus Jakarta Sans, sans-serif');
+  }
 
   // 4. Security hash verification at bottom
   ctx.font = '10px monospace';

@@ -381,7 +381,7 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 340px 1fr; gap: 1.5rem;">
+        <div style="display: grid; grid-template-columns: 360px 1fr; gap: 1.5rem;">
           <!-- CREATE EVENT FORM -->
           <div class="card">
             <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 1rem;">Add New Event</h3>
@@ -396,8 +396,35 @@
               </div>
               <div class="form-group">
                 <label class="form-label" for="newEventDesc">Description</label>
-                <textarea id="newEventDesc" class="form-control" rows="3" placeholder="Brief details about the event"></textarea>
+                <textarea id="newEventDesc" class="form-control" rows="2" placeholder="Brief details about the event"></textarea>
               </div>
+
+              <!-- TEMPLATE CONFIGURATION -->
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                  <input type="checkbox" id="newEventUseMainTemplate" checked onchange="toggleNewEventTemplateConfig()">
+                  <span>🏛️ Use Institutional Main Templates</span>
+                </label>
+                <small style="display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 0.2rem;">
+                  Automatically uses the college-wide participation and coordinator templates.
+                </small>
+              </div>
+
+              <div id="newEventCustomTemplatesGroup" style="display: none; margin-bottom: 1.25rem; background: var(--surface-subtle); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                  <label class="form-label" for="newEventParticipantTemplate" style="font-size: 0.8rem;">Participant Template</label>
+                  <select id="newEventParticipantTemplate" class="form-control" style="font-size: 0.85rem;">
+                    <option value="">-- Active Institutional Participation Template --</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="newEventCoordinatorTemplate" style="font-size: 0.8rem;">Coordinator Template</label>
+                  <select id="newEventCoordinatorTemplate" class="form-control" style="font-size: 0.85rem;">
+                    <option value="">-- Active Institutional Coordination Template --</option>
+                  </select>
+                </div>
+              </div>
+
               <button type="submit" class="btn btn-primary btn-block">Create Event</button>
             </form>
           </div>
@@ -410,12 +437,13 @@
                   <tr>
                     <th>Event Name</th>
                     <th>Date</th>
+                    <th>Template Assignment</th>
                     <th>Participants</th>
                     <th style="text-align: right;">Action</th>
                   </tr>
                 </thead>
                 <tbody id="eventsTableBody">
-                  <tr><td colspan="4" style="text-align: center; padding: 2rem;">Loading events...</td></tr>
+                  <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading events...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -441,18 +469,18 @@
           </div>
         </div>
 
-        <!-- MAIN TEMPLATE NOTICE & EVENT SELECTOR CARD -->
+        <!-- DYNAMIC TEMPLATE NOTICE & EVENT SELECTOR CARD -->
         <div class="card" style="margin-bottom: 1.5rem; border: 1px solid rgba(30, 58, 138, 0.2); background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
-          <!-- NOTICE BANNER: MAIN TEMPLATE IN USE -->
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+          <!-- DYNAMIC BANNER: TEMPLATES IN USE -->
+          <div id="eventCertTemplateBanner" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
             <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <span style="font-size: 1.25rem;">🏛️</span>
+              <span id="eventCertBannerIcon" style="font-size: 1.25rem;">🏛️</span>
               <div>
-                <strong style="color: #1e40af; font-size: 0.9rem;">Using Main Institutional Template:</strong>
-                <span style="color: #1e3a8a; font-size: 0.85rem; margin-left: 0.35rem;">Sri Vasavi Engineering College (Aikyam)</span>
+                <strong id="eventCertBannerTitle" style="color: #1e40af; font-size: 0.9rem;">Using Main Institutional Templates:</strong>
+                <span id="eventCertBannerDetail" style="color: #1e3a8a; font-size: 0.85rem; margin-left: 0.35rem;">Participation & Coordination Templates</span>
               </div>
             </div>
-            <span class="badge badge-success" style="font-size: 0.775rem;">✓ No Template Upload Needed</span>
+            <span id="eventCertBannerBadge" class="badge badge-success" style="font-size: 0.775rem;">✓ Institutional Defaults</span>
           </div>
 
           <!-- EVENT SELECTOR ROW -->
@@ -711,34 +739,85 @@
 
       <!-- TAB 6: TEMPLATE STUDIO -->
       <section id="tab-template" style="display: none;">
-        <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
+        <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
           <div>
             <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Certificate Template Studio</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Fine-tune text placement coordinates (X, Y) and typography with live preview</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Fine-tune text placement coordinates (X, Y) and typography with live interactive preview</p>
           </div>
-          <div style="display: flex; gap: 0.5rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <button class="btn btn-secondary btn-sm" onclick="resetStudioCoordinates()">↺ Reset Coordinates</button>
             <button class="btn btn-success btn-sm" onclick="saveTemplateCoordinates()">💾 Save Template Config</button>
+          </div>
+        </div>
+
+        <!-- TEMPLATE SWITCHER TOOLBAR -->
+        <div class="template-switcher-bar">
+          <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <div class="template-pill-group">
+              <button type="button" id="btnStudioTypePart" class="template-pill-btn active" onclick="switchStudioTemplateType('participation')">
+                🎓 Participation Template
+              </button>
+              <button type="button" id="btnStudioTypeCoord" class="template-pill-btn" onclick="switchStudioTemplateType('coordination')">
+                ⭐ Coordination Template
+              </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Or Select:</span>
+              <select id="studioTemplateSelector" class="form-control" style="font-size: 0.825rem; padding: 0.35rem 0.6rem; min-width: 220px;" onchange="onStudioTemplateSelected(this.value)">
+                <option value="">-- Choose From Template Library --</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="studioCurrentBadge" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span id="studioTypeBadge" class="badge badge-primary">🎓 Participation</span>
+            <span id="studioActiveBadge" class="badge badge-success">● Active</span>
           </div>
         </div>
 
         <div class="studio-container">
           <!-- CANVAS PREVIEW PANEL -->
           <div class="studio-canvas-panel">
-            <canvas id="studioCanvas" width="1024" height="682" style="max-width: 100%; height: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5);"></canvas>
+            <div style="background: #0f172a; padding: 1rem; border-radius: var(--radius-sm); display: flex; justify-content: center; align-items: center;">
+              <canvas id="studioCanvas" width="1024" height="682" style="max-width: 100%; height: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-radius: 4px;"></canvas>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+              Interactive Preview (1024 × 682 px). Adjust coordinates on the right to align text exactly onto the template.
+            </p>
           </div>
 
           <!-- CONTROLS PANEL -->
           <div class="studio-controls-panel">
-            <div style="margin-bottom: 1rem;">
-              <h4 style="margin-bottom: 0.5rem;">Upload New Template Image</h4>
-              <input type="file" id="newTemplateFileInput" accept=".jpg,.jpeg,.png" class="form-control" onchange="handleUploadNewTemplate(event)">
+            <!-- UPLOAD NEW TEMPLATE SECTION -->
+            <div style="background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); margin-bottom: 1.25rem;">
+              <h4 style="font-size: 0.95rem; margin-bottom: 0.6rem; font-weight: 700;">Upload New Template Image</h4>
+              <form id="templateUploadForm" onsubmit="handleUploadNewTemplate(event)">
+                <div class="form-group" style="margin-bottom: 0.6rem;">
+                  <label class="form-label" style="font-size: 0.75rem;">Template Name</label>
+                  <input type="text" id="newTemplateNameInput" class="form-control" placeholder="e.g. SVEC AI Summit Template" style="font-size: 0.85rem;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0.6rem;">
+                  <label class="form-label" style="font-size: 0.75rem;">Template Role / Category</label>
+                  <select id="newTemplateTypeSelect" class="form-control" style="font-size: 0.85rem;">
+                    <option value="participation">🎓 Participation Template (Students)</option>
+                    <option value="coordination">⭐ Coordination Template (Coordinators)</option>
+                    <option value="general">📄 General Certificate Template</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                  <label class="form-label" style="font-size: 0.75rem;">Template Image (.jpg, .jpeg, .png)</label>
+                  <input type="file" id="newTemplateFileInput" accept=".jpg,.jpeg,.png" class="form-control" style="font-size: 0.85rem;" required>
+                </div>
+                <button type="submit" id="btnUploadTemplateSubmit" class="btn btn-primary btn-block btn-sm">
+                  📤 Upload & Tune Template
+                </button>
+              </form>
             </div>
-            <hr style="margin-bottom: 1rem; border: none; border-top: 1px solid var(--surface-border);">
 
             <!-- STUDENT NAME CONTROLS -->
             <div class="field-slider-group">
-              <h4><span>Student Name</span> <span id="label-name-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
+              <h4><span>Student / Recipient Name</span> <span id="label-name-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
               <div class="form-row">
                 <div>
                   <label style="font-size: 0.75rem;">X Coordinate</label>
@@ -812,7 +891,7 @@
               </div>
             </div>
 
-            <!-- EVENTS CONTROLS -->
+            <!-- EVENTS LINE CONTROLS -->
             <div class="field-slider-group">
               <h4><span>Events Line</span> <span id="label-events-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
               <div class="form-row">
@@ -831,6 +910,44 @@
               </div>
             </div>
 
+            <!-- COORDINATOR DESIGNATION CONTROLS (Active for Coordination templates) -->
+            <div id="group-coord-designation" class="field-slider-group" style="display: none; border-left: 3px solid #b45309; background: #fffaf0;">
+              <h4><span style="color: #92400e;">⭐ Coordinator Designation</span> <span id="label-designation-coords" style="font-size: 0.75rem; color: #b45309;"></span></h4>
+              <div class="form-row">
+                <div>
+                  <label style="font-size: 0.75rem;">X</label>
+                  <input type="number" id="coord-designation-x" class="form-control" oninput="updateStudioLive()">
+                </div>
+                <div>
+                  <label style="font-size: 0.75rem;">Y</label>
+                  <input type="number" id="coord-designation-y" class="form-control" oninput="updateStudioLive()">
+                </div>
+                <div>
+                  <label style="font-size: 0.75rem;">Size</label>
+                  <input type="number" id="coord-designation-size" class="form-control" oninput="updateStudioLive()">
+                </div>
+              </div>
+              <small style="font-size: 0.725rem; color: #92400e; display: block; margin-top: 0.35rem;">
+                Designation text (e.g. "Student Coordinator") printed on the coordinator certificate.
+              </small>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TEMPLATE LIBRARY & GALLERY SECTION -->
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700;">📚 Registered Template Library</h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">All institutional and event certificate templates saved in database</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadTemplateLibrary()">🔄 Refresh Library</button>
+          </div>
+          <div id="templateLibraryGrid" class="template-gallery-grid">
+            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">
+              Loading templates...
+            </div>
           </div>
         </div>
 
@@ -1071,6 +1188,72 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeQuickEventModal()">Cancel</button>
           <button type="submit" id="quickEventSubmitBtn" class="btn btn-primary">Create & Select Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT EVENT MODAL -->
+  <div id="editEventModal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Edit Event & Template Settings</h3>
+        <button class="modal-close" onclick="closeEditEventModal()">&times;</button>
+      </div>
+      <form onsubmit="handleUpdateEvent(event)">
+        <input type="hidden" id="editEventId">
+        <div class="modal-body" style="background: #fff; padding: 1.5rem; color: var(--text-main); align-items: stretch;">
+          <div class="form-group">
+            <label class="form-label" for="editEventName">Event Name *</label>
+            <input type="text" id="editEventName" class="form-control" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="editEventDate">Event Date</label>
+              <input type="text" id="editEventDate" class="form-control" placeholder="e.g. Sep 20, 2026">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editEventCategory">Category</label>
+              <input type="text" id="editEventCategory" class="form-control" placeholder="Separate Event">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editEventDesc">Description</label>
+            <textarea id="editEventDesc" class="form-control" rows="2"></textarea>
+          </div>
+
+          <!-- TEMPLATE SELECTION FOR EVENT -->
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+              <input type="checkbox" id="editEventUseMainTemplate" onchange="toggleEditEventTemplateConfig()">
+              <span>🏛️ Use Institutional Main Templates</span>
+            </label>
+            <small style="display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 0.2rem;">
+              When checked, certificates use the active college-wide participation and coordinator templates.
+            </small>
+          </div>
+
+          <div id="editEventCustomTemplatesGroup" style="margin-bottom: 0.5rem; background: var(--surface-subtle); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+              <label class="form-label" for="editEventParticipantTemplate" style="font-size: 0.8rem;">Participant Template</label>
+              <select id="editEventParticipantTemplate" class="form-control" style="font-size: 0.85rem;">
+                <option value="">-- Active Institutional Participation Template --</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="editEventCoordinatorTemplate" style="font-size: 0.8rem;">Coordinator Template</label>
+              <select id="editEventCoordinatorTemplate" class="form-control" style="font-size: 0.85rem;">
+                <option value="">-- Active Institutional Coordination Template --</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeEditEventModal()">Cancel</button>
+          <button type="submit" id="editEventSubmitBtn" class="btn btn-primary">Save Changes</button>
         </div>
       </form>
     </div>

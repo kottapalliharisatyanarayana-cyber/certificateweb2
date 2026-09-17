@@ -134,12 +134,82 @@ const seedDefaults = async () => {
       console.log(`👤 Default Admin created: ${defaultUser} / ${defaultPass}`);
     }
 
-    // 2. Seed Default Certificate Template if none exists
-    const templateCount = await Template.countDocuments();
-    if (templateCount === 0) {
+    // 2. Seed Default Participation Template if none exists
+    let participationTemplate = await Template.findOne({ template_type: 'participation' });
+    if (!participationTemplate) {
+      // Check legacy template without template_type
+      const legacyTemplate = await Template.findOne({ template_type: { $exists: false } });
+      if (legacyTemplate) {
+        legacyTemplate.template_type = 'participation';
+        await legacyTemplate.save();
+        participationTemplate = legacyTemplate;
+      } else {
+        participationTemplate = await Template.create({
+          template_name: 'Sri Vasavi Engineering College (Aikyam - Participation)',
+          template_file: '/templates/svec_template.jpg',
+          template_type: 'participation',
+          is_active: true,
+          fields_config: {
+            canvas_width: 1024,
+            canvas_height: 682,
+            name: {
+              x: 350,
+              y: 355,
+              fontSize: 20,
+              fontFamily: 'Playfair Display, serif',
+              fontWeight: 'bold',
+              color: '#1a1a2e',
+              align: 'left'
+            },
+            semester: {
+              x: 125,
+              y: 382,
+              fontSize: 16,
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 'bold',
+              color: '#1a1a2e',
+              align: 'left'
+            },
+            branch: {
+              x: 360,
+              y: 382,
+              fontSize: 16,
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 'bold',
+              color: '#1a1a2e',
+              align: 'left'
+            },
+            roll_no: {
+              x: 690,
+              y: 382,
+              fontSize: 16,
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 'bold',
+              color: '#1a1a2e',
+              align: 'left'
+            },
+            events: {
+              x: 400,
+              y: 409,
+              fontSize: 16,
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 'bold',
+              color: '#7b1113',
+              align: 'left'
+            }
+          }
+        });
+        console.log('📜 Default Participation template seeded!');
+      }
+    }
+
+    // 3. Seed Default Coordination Template if none exists
+    const coordinationTemplate = await Template.findOne({ template_type: 'coordination' });
+    if (!coordinationTemplate) {
       await Template.create({
-        template_name: 'Sri Vasavi Engineering College (Aikyam)',
-        template_file: '/templates/svec_template.jpg',
+        template_name: 'Sri Vasavi Engineering College (Certificate of Coordination)',
+        template_file: '/templates/svec_coordinator_template.jpg',
+        template_type: 'coordination',
         is_active: true,
         fields_config: {
           canvas_width: 1024,
@@ -186,12 +256,21 @@ const seedDefaults = async () => {
             fontSize: 16,
             fontFamily: 'Inter, sans-serif',
             fontWeight: 'bold',
-            color: '#7b1113', // Deep maroon/crimson matching certificate aesthetic
+            color: '#7b1113',
             align: 'left'
+          },
+          designation: {
+            x: 512,
+            y: 440,
+            fontSize: 15,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 'bold',
+            color: '#7b1113',
+            align: 'center'
           }
         }
       });
-      console.log('📜 Default Sri Vasavi Engineering College template seeded!');
+      console.log('⭐ Default Coordination template seeded!');
     }
   } catch (err) {
     console.error('Error seeding defaults:', err.message);

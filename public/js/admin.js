@@ -412,6 +412,7 @@ async function loadEvents() {
       renderManualEventsCheckboxes();
       populatePdfEventSelect();
       populateEventCertSelect();
+      populateEventTemplateDropdowns();
     }
   } catch (err) {
     console.error('Events load error:', err);
@@ -423,20 +424,162 @@ function renderEventsTable() {
   if (!tbody) return;
 
   if (eventsCache.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No events registered yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No events registered yet.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = eventsCache.map(evt => `
-    <tr>
-      <td><strong>${escapeHtml(evt.event_name)}</strong></td>
-      <td>${escapeHtml(evt.event_date || 'N/A')}</td>
-      <td><span class="badge badge-primary">${evt.participantCount || 0} participants</span></td>
-      <td style="text-align: right;">
-        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${evt._id}', '${escapeHtml(evt.event_name)}')">Delete</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = eventsCache.map(evt => {
+    // Template badge
+    let templateBadge = '';
+    if (evt.use_main_template !== false) {
+      templateBadge = '<span class="badge badge-success" style="font-size: 0.725rem;" title="Official Institutional Participation & Coordinator Templates">🏛️ Institutional Main</span>';
+    } else {
+      const partName = evt.template ? evt.template.template_name : 'Active Participation';
+      const coordName = evt.coordinator_template ? evt.coordinator_template.template_name : 'Active Coordination';
+      templateBadge = `
+        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+          <span class="badge badge-primary" style="font-size: 0.7rem;" title="Custom Participant Template">🎓 ${escapeHtml(partName)}</span>
+          <span class="badge badge-warning" style="font-size: 0.7rem;" title="Custom Coordinator Template">⭐ ${escapeHtml(coordName)}</span>
+        </div>
+      `;
+    }
+
+    const participantsBadge = `<span class="badge badge-primary">${evt.participantCount || 0} students</span>` +
+      (evt.coordinatorCount > 0 ? ` <span class="badge badge-warning" style="margin-left: 0.25rem;">⭐ ${evt.coordinatorCount} coords</span>` : '');
+
+    return `
+      <tr>
+        <td>
+          <strong style="color: var(--text-main); font-size: 0.95rem;">${escapeHtml(evt.event_name)}</strong>
+          ${evt.category && evt.category !== 'Separate Event' ? `<br><small style="color: var(--text-muted); font-size: 0.75rem;">${escapeHtml(evt.category)}</small>` : ''}
+        </td>
+        <td style="white-space: nowrap; font-size: 0.85rem;">${escapeHtml(evt.event_date || 'N/A')}</td>
+        <td>${templateBadge}</td>
+        <td>${participantsBadge}</td>
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="display: inline-flex; gap: 0.35rem;">
+            <button class="btn btn-secondary btn-sm" onclick="openEditEventModal('${evt._id}')" title="Edit Event Details & Templates">
+              ✏️ Edit
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteEvent('${evt._id}', '${escapeHtml(evt.event_name)}')">
+              Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function toggleNewEventTemplateConfig() {
+  const cb = document.getElementById('newEventUseMainTemplate');
+  const group = document.getElementById('newEventCustomTemplatesGroup');
+  if (group && cb) {
+    group.style.display = cb.checked ? 'none' : 'block';
+  }
+}
+
+function toggleEditEventTemplateConfig() {
+  const cb = document.getElementById('editEventUseMainTemplate');
+  const group = document.getElementById('editEventCustomTemplatesGroup');
+  if (group && cb) {
+    group.style.display = cb.checked ? 'none' : 'block';
+  }
+}
+
+function openEditEventModal(eventId) {
+  const event = eventsCache.find(e => e._id === eventId);
+  if (!event) return;
+
+  document.getElementById('editEventId').value = event._id;
+  document.getElementById('editEventName').value = event.event_name || '';
+  document.getElementById('editEventDate').value = event.event_date || '';
+  document.getElementById('editEventCategory').value = event.category || 'Separate Event';
+  document.getElementById('editEventDesc').value = event.description || '';
+
+  const useMain = event.use_main_template !== false;
+  document.getElementById('editEventUseMainTemplate').checked = useMain;
+  toggleEditEventTemplateConfig();
+
+  populateEventTemplateDropdowns();
+
+  const partId = event.template ? (event.template._id || event.template) : '';
+  const coordId = event.coordinator_template ? (event.coordinator_template._id || event.coordinator_template) : '';
+
+  if (document.getElementById('editEventParticipantTemplate')) {
+    document.getElementById('editEventParticipantTemplate').value = partId || '';
+  }
+  if (document.getElementById('editEventCoordinatorTemplate')) {
+    document.getElementById('editEventCoordinatorTemplate').value = coordId || '';
+  }
+
+  document.getElementById('editEventModal').classList.add('active');
+}
+
+function closeEditEventModal() {
+  const modal = document.getElementById('editEventModal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function handleUpdateEvent(e) {
+  e.preventDefault();
+  const id = document.getElementById('editEventId').value;
+  const name = document.getElementById('editEventName').value.trim();
+  const date = document.getElementById('editEventDate').value.trim();
+  const category = document.getElementById('editEventCategory').value.trim();
+  const desc = document.getElementById('editEventDesc').value.trim();
+  const useMain = document.getElementById('editEventUseMainTemplate').checked;
+  const partTpl = document.getElementById('editEventParticipantTemplate').value || null;
+  const coordTpl = document.getElementById('editEventCoordinatorTemplate').value || null;
+
+  const submitBtn = document.getElementById('editEventSubmitBtn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+  }
+
+  try {
+    const res = await fetch(`/api/events/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        event_name: name,
+        event_date: date,
+        category,
+        description: desc,
+        use_main_template: useMain,
+        template: useMain ? null : partTpl,
+        coordinator_template: useMain ? null : coordTpl
+      })
+    });
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Changes';
+    }
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`Event "${name}" updated successfully!`, 'success');
+      closeEditEventModal();
+      await loadEvents();
+      if (typeof currentEventCertEventId !== 'undefined' && currentEventCertEventId === id) {
+        await loadEventCertificates(id);
+      }
+      await loadTemplateLibrary();
+    } else {
+      showToast(data.message || 'Failed to update event', 'error');
+    }
+  } catch (err) {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Changes';
+    }
+    showToast('Failed to update event: ' + err.message, 'error');
+  }
 }
 
 async function handleCreateEvent(e) {
@@ -444,6 +587,9 @@ async function handleCreateEvent(e) {
   const name = document.getElementById('newEventName').value.trim();
   const date = document.getElementById('newEventDate').value.trim();
   const desc = document.getElementById('newEventDesc').value.trim();
+  const useMain = document.getElementById('newEventUseMainTemplate') ? document.getElementById('newEventUseMainTemplate').checked : true;
+  const participantTemplate = document.getElementById('newEventParticipantTemplate')?.value || null;
+  const coordinatorTemplate = document.getElementById('newEventCoordinatorTemplate')?.value || null;
 
   try {
     const res = await fetch('/api/events', {
@@ -452,7 +598,14 @@ async function handleCreateEvent(e) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify({ event_name: name, event_date: date, description: desc })
+      body: JSON.stringify({
+        event_name: name,
+        event_date: date,
+        description: desc,
+        use_main_template: useMain,
+        template: useMain ? null : participantTemplate,
+        coordinator_template: useMain ? null : coordinatorTemplate
+      })
     });
 
     const data = await res.json();
@@ -461,7 +614,12 @@ async function handleCreateEvent(e) {
       document.getElementById('newEventName').value = '';
       document.getElementById('newEventDate').value = '';
       document.getElementById('newEventDesc').value = '';
-      loadEvents();
+      if (document.getElementById('newEventUseMainTemplate')) {
+        document.getElementById('newEventUseMainTemplate').checked = true;
+        toggleNewEventTemplateConfig();
+      }
+      await loadEvents();
+      await loadTemplateLibrary();
       loadStats();
     } else {
       showToast(data.message || 'Failed to create event', 'error');
@@ -517,6 +675,7 @@ async function deleteEvent(id, name) {
       showToast(`Event deleted successfully`, 'success');
       loadEvents();
       loadStats();
+      loadTemplateLibrary();
     } else {
       showToast(data.message || 'Failed to delete event', 'error');
     }
@@ -740,23 +899,88 @@ async function deleteStudent(id, roll) {
   }
 }
 
-// 6. TEMPLATE STUDIO (LIVE INTERACTIVE COORDINATE TUNING)
-async function loadTemplateStudio() {
+// 6. TEMPLATE STUDIO & TEMPLATE LIBRARY (DUAL-MODE & LIVE TUNING)
+let currentTemplateType = 'participation';
+let allTemplatesList = [];
+
+async function loadTemplateStudio(templateId) {
   try {
-    const res = await fetch('/api/templates/active');
+    // 1. Refresh templates library and selector dropdowns
+    await loadTemplateLibrary();
+
+    // 2. Fetch active template for type, or specific template by id
+    let url = `/api/templates/active?type=${encodeURIComponent(currentTemplateType)}`;
+    if (templateId) {
+      url = `/api/templates/${templateId}`;
+    }
+
+    const res = await fetch(url, {
+      headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+    });
     const data = await res.json();
 
     if (res.ok && data.success && data.template) {
       currentTemplate = data.template;
-      populateStudioInputs(data.template.fields_config);
+      currentTemplateType = currentTemplate.template_type || currentTemplateType;
+
+      // Update UI active badges and pills
+      updateStudioUIState();
+      populateStudioInputs(currentTemplate.fields_config, currentTemplateType);
       await drawStudioPreview();
+
+      // Update sidebar indicator
+      const sidebarTpl = document.getElementById('sidebarActiveTemplate');
+      if (sidebarTpl) {
+        sidebarTpl.textContent = currentTemplate.template_name;
+      }
     }
   } catch (err) {
     console.error('Template load error:', err);
   }
 }
 
-function populateStudioInputs(cfg) {
+async function switchStudioTemplateType(type) {
+  currentTemplateType = type;
+  updateStudioUIState();
+  await loadTemplateStudio();
+}
+
+function updateStudioUIState() {
+  const btnPart = document.getElementById('btnStudioTypePart');
+  const btnCoord = document.getElementById('btnStudioTypeCoord');
+  const typeBadge = document.getElementById('studioTypeBadge');
+  const activeBadge = document.getElementById('studioActiveBadge');
+  const selector = document.getElementById('studioTemplateSelector');
+  const groupDesig = document.getElementById('group-coord-designation');
+
+  const isCoord = (currentTemplateType === 'coordination');
+
+  if (btnPart) {
+    btnPart.className = !isCoord ? 'template-pill-btn active' : 'template-pill-btn';
+  }
+  if (btnCoord) {
+    btnCoord.className = isCoord ? 'template-pill-btn active' : 'template-pill-btn';
+  }
+
+  if (typeBadge && currentTemplate) {
+    typeBadge.textContent = isCoord ? '⭐ Coordination' : '🎓 Participation';
+    typeBadge.className = isCoord ? 'badge badge-warning' : 'badge badge-primary';
+  }
+
+  if (activeBadge && currentTemplate) {
+    activeBadge.style.display = currentTemplate.is_active ? 'inline-block' : 'none';
+  }
+
+  if (selector && currentTemplate) {
+    selector.value = currentTemplate._id;
+  }
+
+  if (groupDesig) {
+    groupDesig.style.display = isCoord ? 'block' : 'none';
+  }
+}
+
+function populateStudioInputs(cfg, templateType) {
   if (!cfg) return;
 
   setInputValue('coord-name-x', cfg.name?.x || 350);
@@ -778,6 +1002,18 @@ function populateStudioInputs(cfg) {
   setInputValue('coord-events-x', cfg.events?.x || 400);
   setInputValue('coord-events-y', cfg.events?.y || 409);
   setInputValue('coord-events-size', cfg.events?.fontSize || 16);
+
+  const isCoord = (templateType === 'coordination');
+  const groupDesig = document.getElementById('group-coord-designation');
+  if (groupDesig) {
+    groupDesig.style.display = isCoord ? 'block' : 'none';
+  }
+
+  if (isCoord) {
+    setInputValue('coord-designation-x', cfg.designation?.x || 512);
+    setInputValue('coord-designation-y', cfg.designation?.y || 440);
+    setInputValue('coord-designation-size', cfg.designation?.fontSize || 15);
+  }
 }
 
 function setInputValue(id, val) {
@@ -802,22 +1038,25 @@ async function drawStudioPreview() {
   canvas.width = currentTemplate.fields_config?.canvas_width || 1024;
   canvas.height = currentTemplate.fields_config?.canvas_height || 682;
 
+  const defaultImage = currentTemplate.template_type === 'coordination'
+    ? '/templates/svec_coordinator_template.jpg'
+    : '/templates/svec_template.jpg';
+
   const img = new Image();
   img.crossOrigin = 'anonymous';
 
   await new Promise((resolve, reject) => {
     img.onload = () => resolve();
     img.onerror = () => {
-      const fallbackSrc = '/templates/svec_template.jpg';
-      if (img.src && !img.src.includes(fallbackSrc)) {
-        console.warn('Template image failed to load, falling back to default:', currentTemplate.template_file);
-        img.onerror = () => reject(new Error('Failed to load template'));
-        img.src = fallbackSrc;
+      if (img.src && !img.src.includes(defaultImage)) {
+        console.warn('Template image failed to load, falling back:', currentTemplate.template_file);
+        img.onerror = () => reject(new Error('Failed to load template image'));
+        img.src = defaultImage;
       } else {
-        reject(new Error('Failed to load template'));
+        reject(new Error('Failed to load template image'));
       }
     };
-    img.src = currentTemplate.template_file || '/templates/svec_template.jpg';
+    img.src = currentTemplate.template_file || defaultImage;
   });
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -844,30 +1083,51 @@ async function drawStudioPreview() {
 
   ctx.textBaseline = 'middle';
 
+  // Name
   ctx.font = `bold ${nameSize}px "Playfair Display", Georgia, serif`;
   ctx.fillStyle = '#1a1a2e';
+  ctx.textAlign = 'left';
   ctx.fillText('Aarav Sharma', nameX, nameY);
 
+  // Semester
   ctx.font = `bold ${semSize}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillStyle = '#1a1a2e';
   ctx.fillText('IV Semester', semX, semY);
 
+  // Branch
   ctx.font = `bold ${branchSize}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillStyle = '#1a1a2e';
   ctx.fillText('CSE', branchX, branchY);
 
+  // Roll No
   ctx.font = `bold ${rollSize}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillStyle = '#1a1a2e';
   ctx.fillText('22A81A0501', rollX, rollY);
 
+  // Events line
   ctx.font = `bold ${evtSize}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillStyle = '#7b1113';
-  ctx.fillText('Tech Trifecta & Engineers Day', evtX, evtY);
+  ctx.fillText('Tech Trifecta & AI Summit', evtX, evtY);
+
+  // Coordinator Designation if coordination template
+  if (currentTemplate.template_type === 'coordination') {
+    const desigX = getInputValue('coord-designation-x', 512);
+    const desigY = getInputValue('coord-designation-y', 440);
+    const desigSize = getInputValue('coord-designation-size', 15);
+
+    ctx.font = `bold ${desigSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillStyle = '#7b1113';
+    ctx.textAlign = 'center';
+    ctx.fillText('Student Coordinator', desigX, desigY);
+    ctx.textAlign = 'left';
+  }
 }
 
-// Save template coordinates
+// Save template coordinates (preserves designation for coordination templates)
 async function saveTemplateCoordinates() {
   if (!currentTemplate) return;
+
+  const isCoord = (currentTemplate.template_type === 'coordination');
 
   const updatedConfig = {
     canvas_width: 1024,
@@ -919,6 +1179,18 @@ async function saveTemplateCoordinates() {
     }
   };
 
+  if (isCoord) {
+    updatedConfig.designation = {
+      x: getInputValue('coord-designation-x', 512),
+      y: getInputValue('coord-designation-y', 440),
+      fontSize: getInputValue('coord-designation-size', 15),
+      fontFamily: 'Inter, sans-serif',
+      fontWeight: 'bold',
+      color: '#7b1113',
+      align: 'center'
+    };
+  }
+
   try {
     const res = await fetch(`/api/templates/${currentTemplate._id}`, {
       method: 'PUT',
@@ -932,7 +1204,8 @@ async function saveTemplateCoordinates() {
     const data = await res.json();
     if (res.ok && data.success) {
       currentTemplate.fields_config = updatedConfig;
-      showToast('Template coordinates saved successfully!', 'success');
+      showToast(`Coordinates saved for "${currentTemplate.template_name}"!`, 'success');
+      await loadTemplateLibrary();
     } else {
       showToast(data.message || 'Failed to save template coordinates', 'error');
     }
@@ -942,25 +1215,50 @@ async function saveTemplateCoordinates() {
 }
 
 function resetStudioCoordinates() {
-  populateStudioInputs({
+  const isCoord = (currentTemplate?.template_type === 'coordination');
+  const defaults = {
     name: { x: 350, y: 355, fontSize: 20 },
     semester: { x: 125, y: 382, fontSize: 16 },
     branch: { x: 360, y: 382, fontSize: 16 },
     roll_no: { x: 690, y: 382, fontSize: 16 },
     events: { x: 400, y: 409, fontSize: 16 }
-  });
+  };
+
+  if (isCoord) {
+    defaults.designation = { x: 512, y: 440, fontSize: 15 };
+  }
+
+  populateStudioInputs(defaults, currentTemplate?.template_type);
   drawStudioPreview();
   showToast('Coordinates reset to defaults', 'info');
 }
 
-// Upload new template image
+// Upload new template image with category assignment
 async function handleUploadNewTemplate(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  if (e) e.preventDefault();
+  const fileInput = document.getElementById('newTemplateFileInput');
+  const nameInput = document.getElementById('newTemplateNameInput');
+  const typeSelect = document.getElementById('newTemplateTypeSelect');
+  const submitBtn = document.getElementById('btnUploadTemplateSubmit');
+
+  const file = fileInput?.files[0];
+  if (!file) {
+    showToast('Please select a template image (.jpg or .png)', 'error');
+    return;
+  }
+
+  const templateName = (nameInput?.value || '').trim() || file.name.replace(/\.[^/.]+$/, '');
+  const templateType = typeSelect?.value || 'participation';
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading...';
+  }
 
   const formData = new FormData();
   formData.append('template_image', file);
-  formData.append('template_name', file.name.replace(/\.[^/.]+$/, ''));
+  formData.append('template_name', templateName);
+  formData.append('template_type', templateType);
 
   try {
     const res = await fetch('/api/templates/upload', {
@@ -969,22 +1267,198 @@ async function handleUploadNewTemplate(e) {
       body: formData
     });
 
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '📤 Upload & Tune Template';
+    }
+
     const data = await res.json();
     if (res.ok && data.success) {
-      showToast('New template uploaded!', 'success');
-      await fetch(`/api/templates/${data.template._id}/activate`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      currentTemplate = data.template;
-      populateStudioInputs(currentTemplate.fields_config);
-      drawStudioPreview();
+      showToast(`Template "${templateName}" uploaded successfully!`, 'success');
+      fileInput.value = '';
+      if (nameInput) nameInput.value = '';
+      currentTemplateType = templateType;
+      await loadTemplateStudio(data.template._id);
+      await loadEvents();
     } else {
       showToast(data.message || 'Template upload failed', 'error');
     }
   } catch (err) {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '📤 Upload & Tune Template';
+    }
     showToast('Upload error: ' + err.message, 'error');
   }
+}
+
+// Load and render Template Library cards
+async function loadTemplateLibrary() {
+  const container = document.getElementById('templateLibraryGrid');
+  try {
+    const res = await fetch('/api/templates', {
+      headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      if (container) container.innerHTML = '<div style="color: var(--danger); padding: 1rem;">Failed to load template library.</div>';
+      return;
+    }
+
+    allTemplatesList = data.templates || [];
+    populateTemplateSelectors();
+
+    if (!container) return;
+
+    if (allTemplatesList.length === 0) {
+      container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">No templates uploaded yet.</div>';
+      return;
+    }
+
+    container.innerHTML = allTemplatesList.map(t => {
+      const isCoord = (t.template_type === 'coordination');
+      const isCurrent = (currentTemplate && currentTemplate._id === t._id);
+      const activeClass = isCurrent ? 'template-card active-tpl' : 'template-card';
+
+      const typeBadge = isCoord 
+        ? '<span class="badge badge-warning" style="font-size: 0.725rem;">⭐ Coordination</span>'
+        : '<span class="badge badge-primary" style="font-size: 0.725rem;">🎓 Participation</span>';
+
+      const activeBadge = t.is_active 
+        ? '<span class="badge badge-success" style="font-size: 0.725rem;">● Active Default</span>' 
+        : '';
+
+      const usageText = t.eventUsageCount > 0 
+        ? `<span style="color: var(--primary); font-weight: 600;">Used in ${t.eventUsageCount} event(s)</span>`
+        : `<span style="color: var(--text-muted);">Global template</span>`;
+
+      return `
+        <div class="${activeClass}">
+          <div class="template-card-preview">
+            <img src="${t.template_file}" alt="${escapeHtml(t.template_name)}" onerror="this.src='/templates/svec_template.jpg'">
+          </div>
+          <div class="template-card-body">
+            <h4 class="template-card-title">${escapeHtml(t.template_name)}</h4>
+            <div class="template-card-meta">
+              ${typeBadge}
+              ${activeBadge}
+            </div>
+            <p style="font-size: 0.785rem; margin-bottom: 0.5rem;">${usageText}</p>
+            <div class="template-card-actions">
+              <button class="btn btn-secondary btn-sm" onclick="selectTemplateForStudio('${t._id}')" title="Tune coordinates">
+                🎨 Tune
+              </button>
+              ${!t.is_active ? `
+                <button class="btn btn-secondary btn-sm" onclick="activateTemplate('${t._id}', '${escapeHtml(t.template_name)}', '${t.template_type}')" title="Set as default active">
+                  ⭐ Set Active
+                </button>
+              ` : '<span class="badge badge-success" style="font-size: 0.75rem;">Active</span>'}
+              <button class="btn btn-danger btn-sm" onclick="deleteTemplate('${t._id}', '${escapeHtml(t.template_name)}')" title="Delete template">
+                🗑️
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error('Library load error:', err);
+    if (container) container.innerHTML = `<div style="color: var(--danger); padding: 1rem;">Error: ${err.message}</div>`;
+  }
+}
+
+function selectTemplateForStudio(templateId) {
+  loadTemplateStudio(templateId);
+  const studioTab = document.getElementById('tab-template');
+  if (studioTab) {
+    window.scrollTo({ top: studioTab.offsetTop - 80, behavior: 'smooth' });
+  }
+}
+
+function onStudioTemplateSelected(templateId) {
+  if (templateId) {
+    selectTemplateForStudio(templateId);
+  }
+}
+
+async function activateTemplate(id, name, type) {
+  try {
+    const res = await fetch(`/api/templates/${id}/activate`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`Template "${name}" is now the active ${type} template!`, 'success');
+      currentTemplateType = type;
+      await loadTemplateStudio(id);
+    } else {
+      showToast(data.message || 'Failed to activate template', 'error');
+    }
+  } catch (err) {
+    showToast('Activation error: ' + err.message, 'error');
+  }
+}
+
+async function deleteTemplate(id, name) {
+  if (!confirm(`Are you sure you want to delete template "${name}"?`)) return;
+
+  try {
+    const res = await fetch(`/api/templates/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast('Template deleted successfully', 'success');
+      await loadTemplateStudio();
+    } else {
+      showToast(data.message || 'Failed to delete template', 'error');
+    }
+  } catch (err) {
+    showToast('Delete error: ' + err.message, 'error');
+  }
+}
+
+function populateTemplateSelectors() {
+  const studioSelector = document.getElementById('studioTemplateSelector');
+  if (studioSelector) {
+    const opts = ['<option value="">-- Choose From Template Library --</option>'];
+    allTemplatesList.forEach(t => {
+      const typeLabel = t.template_type === 'coordination' ? '⭐ Coordinator' : '🎓 Participant';
+      const activeLabel = t.is_active ? ' (Active)' : '';
+      const selected = (currentTemplate && currentTemplate._id === t._id) ? ' selected' : '';
+      opts.push(`<option value="${t._id}"${selected}>${escapeHtml(t.template_name)} [${typeLabel}]${activeLabel}</option>`);
+    });
+    studioSelector.innerHTML = opts.join('');
+  }
+  populateEventTemplateDropdowns();
+}
+
+function populateEventTemplateDropdowns() {
+  const newPartSelect = document.getElementById('newEventParticipantTemplate');
+  const newCoordSelect = document.getElementById('newEventCoordinatorTemplate');
+  const editPartSelect = document.getElementById('editEventParticipantTemplate');
+  const editCoordSelect = document.getElementById('editEventCoordinatorTemplate');
+
+  const partOptions = ['<option value="">-- Active Institutional Participation Template --</option>'];
+  const coordOptions = ['<option value="">-- Active Institutional Coordination Template --</option>'];
+
+  allTemplatesList.forEach(t => {
+    const opt = `<option value="${t._id}">${escapeHtml(t.template_name)}${t.is_active ? ' (Active)' : ''}</option>`;
+    if (t.template_type === 'coordination') {
+      coordOptions.push(opt);
+    } else {
+      partOptions.push(opt);
+    }
+  });
+
+  if (newPartSelect) newPartSelect.innerHTML = partOptions.join('');
+  if (newCoordSelect) newCoordSelect.innerHTML = coordOptions.join('');
+  if (editPartSelect) editPartSelect.innerHTML = partOptions.join('');
+  if (editCoordSelect) editCoordSelect.innerHTML = coordOptions.join('');
 }
 
 // Toast notification helper
@@ -1247,6 +1721,30 @@ async function loadEventCertificates(eventId) {
     // 3. Show sections
     document.getElementById('eventCertSummaryBar').style.display = 'block';
     document.getElementById('eventCertIssuanceContainer').style.display = 'block';
+
+    // Update Dynamic Template Banner
+    const bannerTitle = document.getElementById('eventCertBannerTitle');
+    const bannerDetail = document.getElementById('eventCertBannerDetail');
+    const bannerBadge = document.getElementById('eventCertBannerBadge');
+    const bannerIcon = document.getElementById('eventCertBannerIcon');
+
+    if (bannerTitle && bannerDetail && bannerBadge) {
+      if (event.useMainTemplate) {
+        if (bannerIcon) bannerIcon.textContent = '🏛️';
+        bannerTitle.textContent = 'Using Main Institutional Templates:';
+        bannerDetail.textContent = 'Sri Vasavi Engineering College (Participation & Coordination Templates)';
+        bannerBadge.textContent = '✓ Institutional Defaults';
+        bannerBadge.className = 'badge badge-success';
+      } else {
+        if (bannerIcon) bannerIcon.textContent = '🎨';
+        bannerTitle.textContent = 'Using Custom Event Templates:';
+        const partName = event.template ? event.template.name : 'Active Participation';
+        const coordName = event.coordinatorTemplate ? event.coordinatorTemplate.name : 'Active Coordination';
+        bannerDetail.textContent = `Participant: "${partName}" • Coordinator: "${coordName}"`;
+        bannerBadge.textContent = '🎨 Custom Templates';
+        bannerBadge.className = 'badge badge-primary';
+      }
+    }
 
     // 4. Render table
     renderEventCertificatesTable();
@@ -1736,11 +2234,17 @@ async function openAdminCertPreview(cert) {
   const badge = document.getElementById('adminModalRoleBadge');
   const subtitle = document.getElementById('adminModalCertSubtitle');
 
-  const isCoord = cert.isCoordinator;
+  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
   title.textContent = isCoord ? 'Coordinator Certificate of Appreciation' : 'Student Certificate of Participation';
   badge.textContent = isCoord ? `⭐ ${cert.designation || 'Coordinator'}` : '🎓 Participant';
   badge.className = isCoord ? 'badge badge-warning' : 'badge badge-primary';
-  subtitle.textContent = `${cert.student?.name} (${cert.student?.roll_no}) • Using Institutional Main Template`;
+
+  const activeEvent = eventsCache.find(e => e._id === currentEventCertEventId) || {};
+  const tplDesc = activeEvent.use_main_template !== false
+    ? (isCoord ? 'Dedicated Coordination Template' : 'Institutional Participation Template')
+    : (isCoord ? (activeEvent.coordinator_template?.template_name || 'Custom Coordinator Template') : (activeEvent.template?.template_name || 'Custom Participant Template'));
+
+  subtitle.textContent = `${cert.student?.name} (${cert.student?.roll_no}) • ${tplDesc}`;
 
   modal.classList.add('active');
   await drawAdminCertificateCanvas(cert);
@@ -1750,43 +2254,60 @@ function closeAdminCertModal() {
   document.getElementById('adminCertPreviewModal').classList.remove('active');
 }
 
-// Core Canvas Drawing Engine using Main Template for Students & Coordinators
+// Core Canvas Drawing Engine using Dedicated Coordinator & Participation Templates
 async function drawAdminCertificateCanvas(cert) {
   const canvas = document.getElementById('adminCertCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  // Find active event details
+  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
   const activeEvent = eventsCache.find(e => e._id === currentEventCertEventId) || {};
   const eventName = activeEvent.event_name || 'College Event';
 
   canvas.width = 1024;
   canvas.height = 682;
 
-  // Always use official main template (svec_template.jpg)
+  let templateFile = '/templates/svec_template.jpg';
+  let isDedicatedCoordTemplate = false;
+
+  if (isCoord) {
+    if (activeEvent.use_main_template === false && activeEvent.coordinator_template) {
+      templateFile = activeEvent.coordinator_template.template_file || '/templates/svec_coordinator_template.jpg';
+    } else {
+      templateFile = '/templates/svec_coordinator_template.jpg';
+    }
+    isDedicatedCoordTemplate = templateFile.includes('coordinator') || 
+      (activeEvent.coordinator_template && activeEvent.coordinator_template.template_type === 'coordination');
+  } else {
+    if (activeEvent.use_main_template === false && activeEvent.template) {
+      templateFile = activeEvent.template.template_file || '/templates/svec_template.jpg';
+    } else {
+      templateFile = '/templates/svec_template.jpg';
+    }
+  }
+
   const img = new Image();
   img.crossOrigin = 'anonymous';
 
   await new Promise((resolve, reject) => {
     img.onload = () => resolve();
     img.onerror = () => {
-      const fallback = '/templates/svec_template.jpg';
+      const fallback = isCoord ? '/templates/svec_coordinator_template.jpg' : '/templates/svec_template.jpg';
       if (img.src && !img.src.includes(fallback)) {
         img.src = fallback;
       } else {
-        reject(new Error('Failed to load main certificate template'));
+        reject(new Error('Failed to load certificate template image'));
       }
     };
-    img.src = '/templates/svec_template.jpg';
+    img.src = templateFile;
   });
 
-  // 1. Draw base main certificate template
+  // 1. Draw base certificate template
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
   const student = cert.student || {};
 
-  // Config positions (Sri Vasavi Engineering College Template Specs)
+  // Positions on standard 1024x682 canvas
   const nameX = 350, nameY = 355;
   const semX = 125, semY = 382;
   const branchX = 360, branchY = 382;
@@ -1795,46 +2316,50 @@ async function drawAdminCertificateCanvas(cert) {
 
   ctx.textBaseline = 'middle';
 
-  // 2. COORDINATOR SPECIAL ADAPTATIONS ON MAIN TEMPLATE
+  // 2. COORDINATOR ADAPTATIONS
   if (isCoord) {
-    // 2a. Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
-    // "OF PARTICIPATION" is centered around x: 512, y: 298 with width ~360, height ~24
-    ctx.fillStyle = '#faf8f5';
-    ctx.beginPath();
-    ctx.roundRect(320, 285, 384, 26, 4);
-    ctx.fill();
+    if (isDedicatedCoordTemplate) {
+      // Dedicated coordinator template already features "Certificate of Coordination"
+      // Render Coordinator Designation centered at (512, 440)
+      const desig = cert.designation || 'Student Coordinator';
+      ctx.font = 'bold 15px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#7b1113';
+      ctx.textAlign = 'center';
+      ctx.fillText(desig, 512, 440);
+      ctx.textAlign = 'left';
+    } else {
+      // Fallback only: Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
+      ctx.fillStyle = '#faf8f5';
+      ctx.beginPath();
+      ctx.roundRect(320, 285, 384, 26, 4);
+      ctx.fill();
 
-    // Render "OF APPRECIATION" in bold crimson matching the template aesthetic
-    ctx.font = '700 19px "Playfair Display", Georgia, serif';
-    ctx.fillStyle = '#7b1113';
-    ctx.textAlign = 'center';
-    ctx.letterSpacing = '3px';
-    ctx.fillText('OF  APPRECIATION', 512, 298);
-    ctx.letterSpacing = '0px';
+      ctx.font = '700 19px "Playfair Display", Georgia, serif';
+      ctx.fillStyle = '#7b1113';
+      ctx.textAlign = 'center';
+      ctx.letterSpacing = '3px';
+      ctx.fillText('OF  APPRECIATION', 512, 298);
+      ctx.letterSpacing = '0px';
 
-    // 2b. Add Prestigious Coordinator Insignia Banner at Top-Right
-    const desigText = (cert.designation || 'EVENT COORDINATOR').toUpperCase();
-    ctx.save();
-    ctx.textAlign = 'center';
-    
-    // Ribbon pill badge
-    const badgeW = Math.max(220, desigText.length * 9 + 40);
-    const badgeX = 860 - badgeW / 2;
-    const badgeY = 248;
-
-    ctx.fillStyle = 'rgba(123, 17, 19, 0.95)';
-    ctx.beginPath();
-    ctx.roundRect(badgeX, badgeY - 13, badgeW, 26, 13);
-    ctx.fill();
-
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.font = '700 10.5px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#fef3c7';
-    ctx.fillText(`★  ${desigText}  ★`, 860, badgeY);
-    ctx.restore();
+      // Ribbon badge top right
+      const desigText = (cert.designation || 'EVENT COORDINATOR').toUpperCase();
+      ctx.save();
+      ctx.textAlign = 'center';
+      const badgeW = Math.max(220, desigText.length * 9 + 40);
+      const badgeX = 860 - badgeW / 2;
+      const badgeY = 248;
+      ctx.fillStyle = 'rgba(123, 17, 19, 0.95)';
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY - 13, badgeW, 26, 13);
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.font = '700 10.5px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillText(`★  ${desigText}  ★`, 860, badgeY);
+      ctx.restore();
+    }
   }
 
   // 3. Render Recipient Dynamic Data
@@ -1860,7 +2385,7 @@ async function drawAdminCertificateCanvas(cert) {
   ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
   ctx.fillStyle = '#7b1113';
 
-  if (isCoord) {
+  if (isCoord && !isDedicatedCoordTemplate) {
     ctx.fillText(`${eventName} (${cert.designation || 'Student Coordinator'})`, eventX, eventY);
   } else {
     ctx.fillText(eventName, eventX, eventY);
