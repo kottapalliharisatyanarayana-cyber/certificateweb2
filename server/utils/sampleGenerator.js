@@ -80,6 +80,70 @@ const generateSampleExcel = () => {
   return xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
 };
 
-module.exports = {
-  generateSampleExcel
+const generateSampleCoordinatorsExcel = () => {
+  const data = [
+    {
+      'Roll No': '22A81A0501',
+      'Name': 'Aarav Sharma',
+      'Branch': 'CSE',
+      'Semester': 'IV Semester B.Tech',
+      'Coordinator Designation': 'Student Coordinator',
+      'Email': 'aarav.sharma@example.com'
+    },
+    {
+      'Roll No': '22A81A0502',
+      'Name': 'Bhavya Sri',
+      'Branch': 'AIML',
+      'Semester': 'IV Semester B.Tech',
+      'Coordinator Designation': 'Lead Event Coordinator',
+      'Email': 'bhavya.sri@example.com'
+    },
+    {
+      'Roll No': '22A81A0503',
+      'Name': 'Chaitanya Varma',
+      'Branch': 'ECE',
+      'Semester': 'IV Semester B.Tech',
+      'Coordinator Designation': 'Technical Coordinator',
+      'Email': 'chaitanya.v@example.com'
+    },
+    {
+      'Roll No': '22A81A0504',
+      'Name': 'Divya Jyothi',
+      'Branch': 'IT',
+      'Semester': 'IV Semester B.Tech',
+      'Coordinator Designation': 'Organizing Committee Lead',
+      'Email': 'divya.j@example.com'
+    },
+    {
+      'Roll No': '22A81A0505',
+      'Name': 'Eshwar Prasad',
+      'Branch': 'Mechanical',
+      'Semester': 'IV Semester B.Tech',
+      'Coordinator Designation': 'Student Coordinator',
+      'Email': 'eshwar.p@example.com'
+    }
+  ];
+
+  const ws = xlsx.utils.json_to_sheet(data);
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 15 }, // Roll No
+    { wch: 22 }, // Name
+    { wch: 16 }, // Branch
+    { wch: 22 }, // Semester
+    { wch: 28 }, // Coordinator Designation
+    { wch: 28 }  // Email
+  ];
+
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, 'Coordinators');
+
+  return xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
 };
+
+module.exports = {
+  generateSampleExcel,
+  generateSampleCoordinatorsExcel
+};
+

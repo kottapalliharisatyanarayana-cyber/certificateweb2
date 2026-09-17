@@ -187,9 +187,11 @@ async function loadStats() {
       const dbBadge = document.getElementById('dbStatusBadge');
       const statDbMode = document.getElementById('statDbMode');
       const sidebarTemplate = document.getElementById('sidebarActiveTemplate');
+      const sidebarCoordTemplate = document.getElementById('sidebarActiveCoordTemplate');
 
       statDbMode.textContent = data.stats.dbMode || 'Connected';
-      sidebarTemplate.textContent = data.stats.activeTemplate || 'Sri Vasavi College';
+      if (sidebarTemplate) sidebarTemplate.textContent = data.stats.activeTemplate || 'Sri Vasavi College (Participation)';
+      if (sidebarCoordTemplate) sidebarCoordTemplate.textContent = data.stats.activeCoordTemplate || 'Certificate of Coordination';
 
       dbBadge.style.display = 'inline-flex';
       dbBadge.textContent = `● ${data.stats.dbMode || 'DB Connected'}`;
@@ -928,11 +930,7 @@ async function loadTemplateStudio(templateId) {
       populateStudioInputs(currentTemplate.fields_config, currentTemplateType);
       await drawStudioPreview();
 
-      // Update sidebar indicator
-      const sidebarTpl = document.getElementById('sidebarActiveTemplate');
-      if (sidebarTpl) {
-        sidebarTpl.textContent = currentTemplate.template_name;
-      }
+      // Sidebar active templates are managed strictly via loadStats() and manual activation
     }
   } catch (err) {
     console.error('Template load error:', err);
@@ -950,6 +948,7 @@ function updateStudioUIState() {
   const btnCoord = document.getElementById('btnStudioTypeCoord');
   const typeBadge = document.getElementById('studioTypeBadge');
   const activeBadge = document.getElementById('studioActiveBadge');
+  const btnActivate = document.getElementById('btnStudioActivate');
   const selector = document.getElementById('studioTemplateSelector');
   const groupEvents = document.getElementById('group-events-line');
   const noticeCoord = document.getElementById('coordinatorTemplateNotice');
@@ -968,8 +967,18 @@ function updateStudioUIState() {
     typeBadge.className = isCoord ? 'badge badge-warning' : 'badge badge-primary';
   }
 
-  if (activeBadge && currentTemplate) {
-    activeBadge.style.display = currentTemplate.is_active ? 'inline-block' : 'none';
+  // Active badge and manual activation button
+  if (currentTemplate) {
+    if (currentTemplate.is_active) {
+      if (activeBadge) activeBadge.style.display = 'inline-block';
+      if (btnActivate) btnActivate.style.display = 'none';
+    } else {
+      if (activeBadge) activeBadge.style.display = 'none';
+      if (btnActivate) {
+        btnActivate.style.display = 'inline-block';
+        btnActivate.textContent = `⭐ Set as Active ${isCoord ? 'Coordinator' : 'Participation'} Template`;
+      }
+    }
   }
 
   if (selector && currentTemplate) {
@@ -1380,12 +1389,19 @@ async function activateTemplate(id, name, type) {
       showToast(`Template "${name}" is now the active ${type} template!`, 'success');
       currentTemplateType = type;
       await loadTemplateStudio(id);
+      await loadStats();
+      await loadTemplateLibrary();
     } else {
       showToast(data.message || 'Failed to activate template', 'error');
     }
   } catch (err) {
     showToast('Activation error: ' + err.message, 'error');
   }
+}
+
+async function manuallyActivateCurrentTemplate() {
+  if (!currentTemplate) return;
+  await activateTemplate(currentTemplate._id, currentTemplate.template_name, currentTemplate.template_type);
 }
 
 async function deleteTemplate(id, name) {
@@ -2001,6 +2017,13 @@ function resetEventCertSingleForm() {
   handleCertRoleChange('Student');
 }
 
+// ----------------------------------------------------
+// BULK / BATCH ISSUANCE MANAGEMENT (COORDINATORS & PARTICIPANTS)
+// ----------------------------------------------------
+let currentBulkTarget = 'coordinators'; // 'coordinators' | 'participants' | 'mixed'
+let currentBulkMethod = 'file'; // 'file' | 'paste'
+let currentBulkParsedRecipients = [];
+
 // Toggle between Single and Batch issuance forms
 function setEventCertMode(mode) {
   const btnSingle = document.getElementById('issuanceModeSingleBtn');
@@ -2013,6 +2036,9 @@ function setEventCertMode(mode) {
     btnBulk.className = 'btn btn-primary btn-sm';
     areaSingle.style.display = 'none';
     areaBulk.style.display = 'block';
+    // Initialize default target
+    setBulkRecipientTarget(currentBulkTarget || 'coordinators');
+    setBulkInputMethod(currentBulkMethod || 'file');
   } else {
     btnSingle.className = 'btn btn-primary btn-sm';
     btnBulk.className = 'btn btn-secondary btn-sm';
@@ -2021,19 +2047,305 @@ function setEventCertMode(mode) {
   }
 }
 
-// Fill sample bulk rows
+// Set Bulk Target Category (Coordinators, Participants, Mixed)
+function setBulkRecipientTarget(target) {
+  currentBulkTarget = target;
+  const btnCoord = document.getElementById('bulkTargetCoordBtn');
+  const btnPart = document.getElementById('bulkTargetPartBtn');
+  const btnMixed = document.getElementById('bulkTargetMixedBtn');
+  const notice = document.getElementById('bulkTargetDescNotice');
+  const hint = document.getElementById('bulkPasteFormatHint');
+
+  if (btnCoord) btnCoord.className = target === 'coordinators' ? 'btn btn-warning btn-sm' : 'btn btn-secondary btn-sm';
+  if (btnPart) btnPart.className = target === 'participants' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+  if (btnMixed) btnMixed.className = target === 'mixed' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+
+  if (notice) {
+    if (target === 'coordinators') {
+      notice.style.display = 'block';
+      notice.style.background = '#fffaf0';
+      notice.style.borderColor = '#f59e0b';
+      notice.style.color = '#92400e';
+      notice.innerHTML = '⭐ <strong>Coordinator Mode:</strong> All imported rows will be registered as <strong>Event Coordinators</strong> with dedicated Coordinator Certificates.';
+    } else if (target === 'participants') {
+      notice.style.display = 'block';
+      notice.style.background = '#eff6ff';
+      notice.style.borderColor = '#3b82f6';
+      notice.style.color = '#1e40af';
+      notice.innerHTML = '🎓 <strong>Participant Mode:</strong> All imported rows will be registered as <strong>Student Participants</strong> with Participation Certificates.';
+    } else {
+      notice.style.display = 'block';
+      notice.style.background = '#f8fafc';
+      notice.style.borderColor = '#94a3b8';
+      notice.style.color = '#334155';
+      notice.innerHTML = '🔀 <strong>Mixed Mode:</strong> Specify the role (<em>Student</em> or <em>Coordinator</em>) in the file or per line.';
+    }
+  }
+
+  if (hint) {
+    if (target === 'coordinators') {
+      hint.textContent = 'RollNo, Full Name, Branch, Semester, Coordinator Designation';
+    } else if (target === 'participants') {
+      hint.textContent = 'RollNo, Full Name, Branch, Semester';
+    } else {
+      hint.textContent = 'RollNo, Full Name, Role (Student or Coordinator), Branch, Semester, Designation';
+    }
+  }
+}
+
+// Toggle between File upload and Paste input methods
+function setBulkInputMethod(method) {
+  currentBulkMethod = method;
+  const btnFile = document.getElementById('bulkMethodFileBtn');
+  const btnPaste = document.getElementById('bulkMethodPasteBtn');
+  const areaFile = document.getElementById('bulkFileMethodArea');
+  const areaPaste = document.getElementById('bulkPasteMethodArea');
+
+  if (btnFile) btnFile.className = method === 'file' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+  if (btnPaste) btnPaste.className = method === 'paste' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+
+  if (areaFile) areaFile.style.display = method === 'file' ? 'block' : 'none';
+  if (areaPaste) areaPaste.style.display = method === 'paste' ? 'block' : 'none';
+}
+
+// Download Sample Coordinators Excel file
+function downloadCoordinatorSampleExcel() {
+  window.location.href = '/api/upload/sample-coordinators-excel';
+}
+
+// Handle Excel/CSV file selection for bulk issuance
+async function handleBulkFileInputChange(e) {
+  const file = e.target.files ? e.target.files[0] : null;
+  if (!file) return;
+
+  if (typeof XLSX !== 'undefined') {
+    // Client-side instant parsing with live table preview
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+
+      if (!rawRows || rawRows.length === 0) {
+        showToast('Spreadsheet contains no data rows.', 'error');
+        return;
+      }
+
+      const defaultRole = currentBulkTarget === 'coordinators' ? 'Coordinator' : 'Student';
+      const defaultDesig = document.getElementById('bulkDefaultDesignation')?.value || 'Student Coordinator';
+
+      currentBulkParsedRecipients = [];
+
+      for (const row of rawRows) {
+        const keys = Object.keys(row);
+        const findVal = (patterns) => {
+          const k = keys.find(key => patterns.some(p => key.trim().toLowerCase().includes(p)));
+          return k ? String(row[k]).trim() : '';
+        };
+
+        const roll_no = findVal(['roll', 'reg', 'ht', 'id', 'ticket']);
+        const name = findVal(['name', 'student', 'coordinator']);
+        const branch = findVal(['branch', 'dept', 'department']) || 'CSE';
+        const semester = findVal(['sem', 'year']) || 'IV Semester B.Tech';
+        const designation = findVal(['designation', 'title']) || (defaultRole === 'Coordinator' ? defaultDesig : 'Participant');
+        const role = findVal(['role', 'category', 'type']) || defaultRole;
+        const email = findVal(['email', 'mail']) || '';
+
+        if (roll_no && name) {
+          const isCoord = role.toLowerCase().includes('coordinator') || currentBulkTarget === 'coordinators';
+          currentBulkParsedRecipients.push({
+            roll_no,
+            name,
+            branch,
+            semester,
+            role: isCoord ? 'Coordinator' : 'Student',
+            designation: isCoord ? (designation || defaultDesig) : 'Participant',
+            email,
+            certificate_type: isCoord ? 'Coordination' : 'Participation'
+          });
+        }
+      }
+
+      if (currentBulkParsedRecipients.length === 0) {
+        showToast('No valid rows found. Please ensure the file has Roll No and Name columns.', 'error');
+        return;
+      }
+
+      renderBulkFilePreview();
+      showToast(`Parsed ${currentBulkParsedRecipients.length} recipients from ${file.name}!`, 'success');
+
+    } catch (err) {
+      console.error('Client excel parse error:', err);
+      // Fallback: upload file directly via backend API
+      uploadBulkFileToServer(file);
+    }
+  } else {
+    // Direct server-side upload fallback
+    uploadBulkFileToServer(file);
+  }
+}
+
+// Render Preview table for parsed bulk file
+function renderBulkFilePreview() {
+  const area = document.getElementById('bulkFilePreviewArea');
+  const title = document.getElementById('bulkPreviewTitle');
+  const badge = document.getElementById('bulkPreviewBadge');
+  const tbody = document.getElementById('bulkFilePreviewTableBody');
+
+  if (!area || !tbody) return;
+
+  const count = currentBulkParsedRecipients.length;
+  const isCoord = currentBulkTarget === 'coordinators';
+
+  if (title) title.textContent = `Parsed ${count} ${isCoord ? 'Coordinators' : 'Recipients'}`;
+  if (badge) {
+    badge.textContent = `${count} Ready to Issue`;
+    badge.className = isCoord ? 'badge badge-warning' : 'badge badge-primary';
+  }
+
+  tbody.innerHTML = currentBulkParsedRecipients.slice(0, 50).map((r, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td><strong>${escapeHtml(r.roll_no)}</strong></td>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.branch)}</td>
+      <td>${escapeHtml(r.semester)}</td>
+      <td><span class="badge ${r.role === 'Coordinator' ? 'badge-warning' : 'badge-primary'}">${r.role}</span></td>
+      <td style="color: ${r.role === 'Coordinator' ? '#b45309' : '#64748b'}; font-weight: 600;">${escapeHtml(r.designation)}</td>
+    </tr>
+  `).join('') + (count > 50 ? `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">... and ${count - 50} more rows</td></tr>` : '');
+
+  area.style.display = 'block';
+}
+
+// Clear selected file preview
+function clearBulkFileSelection() {
+  currentBulkParsedRecipients = [];
+  const fileInput = document.getElementById('bulkCertFileInput');
+  if (fileInput) fileInput.value = '';
+  const area = document.getElementById('bulkFilePreviewArea');
+  if (area) area.style.display = 'none';
+}
+
+// Submit parsed file recipients
+async function submitBulkFileRecipients() {
+  if (!currentEventCertEventId) {
+    showToast('Please select an event before issuing certificates', 'error');
+    return;
+  }
+  if (!currentBulkParsedRecipients || currentBulkParsedRecipients.length === 0) {
+    showToast('No recipients parsed to issue', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnSubmitBulkFile');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = `Issuing ${currentBulkParsedRecipients.length} certificates...`;
+  }
+
+  try {
+    const { res, data } = await safeFetch(`/api/events/${currentEventCertEventId}/bulk-issue`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        recipients: currentBulkParsedRecipients,
+        default_role: currentBulkTarget === 'coordinators' ? 'Coordinator' : 'Student',
+        default_designation: document.getElementById('bulkDefaultDesignation')?.value || 'Student Coordinator'
+      })
+    });
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ Issue All Certificates Now';
+    }
+
+    if (res.ok && data.success) {
+      showToast(data.message || 'Bulk certificates issued successfully!', 'success');
+      clearBulkFileSelection();
+      await loadEventCertificates(currentEventCertEventId);
+      loadStats();
+    } else {
+      showToast(data.message || 'Failed to complete batch issuance', 'error');
+    }
+  } catch (err) {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ Issue All Certificates Now';
+    }
+    showToast('Bulk issue error: ' + err.message, 'error');
+  }
+}
+
+// Direct server-side upload fallback
+async function uploadBulkFileToServer(file) {
+  if (!currentEventCertEventId) {
+    showToast('Please select an event before uploading', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('default_role', currentBulkTarget === 'coordinators' ? 'Coordinator' : 'Student');
+  formData.append('default_designation', document.getElementById('bulkDefaultDesignation')?.value || 'Student Coordinator');
+
+  showToast(`Uploading and processing "${file.name}"...`, 'info');
+
+  try {
+    const res = await fetch(`/api/events/${currentEventCertEventId}/upload-bulk`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(data.message || 'Bulk file processed successfully!', 'success');
+      clearBulkFileSelection();
+      await loadEventCertificates(currentEventCertEventId);
+      loadStats();
+    } else {
+      showToast(data.message || 'File upload failed', 'error');
+    }
+  } catch (err) {
+    showToast('Upload error: ' + err.message, 'error');
+  }
+}
+
+// Fill sample bulk rows based on active category
 function fillSampleBulkEventCerts() {
   const input = document.getElementById('eventCertBulkInput');
   if (!input) return;
-  input.value = [
-    '22A81A0501, Aarav Sharma, Student, CSE, IV Semester B.Tech, Participant',
-    '22A81A0502, Bhavya Sri, Coordinator, AIML, IV Semester B.Tech, Student Coordinator',
-    '22A81A0503, Chaitanya Varma, Student, ECE, IV Semester B.Tech, Participant',
-    '22A81A0504, Divya Jyothi, Coordinator, CSE, IV Semester B.Tech, Technical Coordinator'
-  ].join('\n');
+
+  if (currentBulkTarget === 'coordinators') {
+    input.value = [
+      '22A81A0501, Aarav Sharma, CSE, IV Semester B.Tech, Student Coordinator',
+      '22A81A0502, Bhavya Sri, AIML, IV Semester B.Tech, Lead Event Coordinator',
+      '22A81A0503, Chaitanya Varma, ECE, IV Semester B.Tech, Technical Coordinator',
+      '22A81A0504, Divya Jyothi, IT, IV Semester B.Tech, Organizing Committee Lead',
+      '22A81A0505, Eshwar Prasad, Mechanical, IV Semester B.Tech, Student Coordinator'
+    ].join('\n');
+  } else if (currentBulkTarget === 'participants') {
+    input.value = [
+      '22A81A0501, Aarav Sharma, CSE, IV Semester B.Tech',
+      '22A81A0502, Bhavya Sri, AIML, IV Semester B.Tech',
+      '22A81A0503, Chaitanya Varma, ECE, IV Semester B.Tech',
+      '22A81A0504, Divya Jyothi, IT, IV Semester B.Tech',
+      '22A81A0505, Eshwar Prasad, Mechanical, IV Semester B.Tech'
+    ].join('\n');
+  } else {
+    input.value = [
+      '22A81A0501, Aarav Sharma, Student, CSE, IV Semester B.Tech, Participant',
+      '22A81A0502, Bhavya Sri, Coordinator, AIML, IV Semester B.Tech, Student Coordinator',
+      '22A81A0503, Chaitanya Varma, Student, ECE, IV Semester B.Tech, Participant',
+      '22A81A0504, Divya Jyothi, Coordinator, CSE, IV Semester B.Tech, Technical Coordinator'
+    ].join('\n');
+  }
 }
 
-// Process and submit batch/bulk certificate issuance
+// Process and submit batch/bulk certificate issuance from text paste
 async function submitBulkEventCertificates() {
   if (!currentEventCertEventId) {
     showToast('Please select an event before issuing batch certificates', 'error');
@@ -2046,32 +2358,71 @@ async function submitBulkEventCertificates() {
     return;
   }
 
+  const defaultDesig = document.getElementById('bulkDefaultDesignation')?.value || 'Student Coordinator';
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
   const recipients = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // Split comma or tab
-    const parts = line.split(/[,	]/).map(p => p.trim());
+    // Support tab-separated (from Excel) or comma-separated
+    const parts = line.includes('\t') 
+      ? line.split('\t').map(p => p.trim())
+      : line.split(',').map(p => p.trim());
+
     if (parts.length < 2) continue;
 
     const roll_no = parts[0];
     const name = parts[1];
-    const roleInput = (parts[2] || 'Student');
-    const isCoord = roleInput.toLowerCase().includes('coordinator');
-    const branch = parts[3] || 'CSE';
-    const semester = parts[4] || 'IV Semester B.Tech';
-    const designation = parts[5] || (isCoord ? 'Student Coordinator' : 'Participant');
 
-    recipients.push({
-      roll_no,
-      name,
-      role: isCoord ? (designation || 'Student Coordinator') : 'Student',
-      branch,
-      semester,
-      designation,
-      certificate_type: isCoord ? 'Appreciation' : 'Participation'
-    });
+    if (currentBulkTarget === 'coordinators') {
+      // Coordinator Mode: RollNo, Name, [Branch], [Semester], [Designation]
+      const branch = parts[2] || 'CSE';
+      const semester = parts[3] || 'IV Semester B.Tech';
+      const designation = parts[4] || defaultDesig;
+
+      recipients.push({
+        roll_no,
+        name,
+        branch,
+        semester,
+        role: 'Coordinator',
+        designation,
+        certificate_type: 'Coordination'
+      });
+
+    } else if (currentBulkTarget === 'participants') {
+      // Participant Mode: RollNo, Name, [Branch], [Semester]
+      const branch = parts[2] || 'CSE';
+      const semester = parts[3] || 'IV Semester B.Tech';
+
+      recipients.push({
+        roll_no,
+        name,
+        branch,
+        semester,
+        role: 'Student',
+        designation: 'Participant',
+        certificate_type: 'Participation'
+      });
+
+    } else {
+      // Mixed Mode: RollNo, Name, [Role], [Branch], [Semester], [Designation]
+      const roleInput = parts[2] || 'Student';
+      const isCoord = roleInput.toLowerCase().includes('coordinator');
+      const branch = parts[3] || 'CSE';
+      const semester = parts[4] || 'IV Semester B.Tech';
+      const designation = parts[5] || (isCoord ? defaultDesig : 'Participant');
+
+      recipients.push({
+        roll_no,
+        name,
+        role: isCoord ? 'Coordinator' : 'Student',
+        branch,
+        semester,
+        designation,
+        certificate_type: isCoord ? 'Coordination' : 'Participation'
+      });
+    }
   }
 
   if (recipients.length === 0) {
@@ -2090,7 +2441,11 @@ async function submitBulkEventCertificates() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify({ recipients })
+      body: JSON.stringify({
+        recipients,
+        default_role: currentBulkTarget === 'coordinators' ? 'Coordinator' : 'Student',
+        default_designation: defaultDesig
+      })
     });
 
     submitBtn.disabled = false;

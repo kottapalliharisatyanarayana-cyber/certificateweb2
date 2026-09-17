@@ -73,9 +73,19 @@
         <li><a class="sidebar-link" onclick="switchTab('credentials')">🔑 Admin Security</a></li>
       </ul>
 
-      <div style="margin-top: 2rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: var(--radius-sm);">
-        <p style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">ACTIVE TEMPLATE</p>
-        <p id="sidebarActiveTemplate" style="font-size: 0.85rem; color: #fff; font-weight: 700; margin-top: 0.25rem;">Sri Vasavi College</p>
+      <div style="margin-top: 2rem; padding: 0.85rem; background: rgba(255,255,255,0.06); border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+          <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">ACTIVE TEMPLATES</span>
+          <span style="font-size: 0.65rem; background: rgba(255,255,255,0.12); color: #cbd5e1; padding: 0.12rem 0.35rem; border-radius: 4px;">Manual</span>
+        </div>
+        <div style="margin-bottom: 0.5rem;">
+          <span style="font-size: 0.68rem; color: #60a5fa; display: block; font-weight: 600;">🎓 Student (Participation)</span>
+          <p id="sidebarActiveTemplate" style="font-size: 0.8rem; color: #fff; font-weight: 700; margin: 0.15rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Active Participation Template">Sri Vasavi College</p>
+        </div>
+        <div>
+          <span style="font-size: 0.68rem; color: #f59e0b; display: block; font-weight: 600;">⭐ Event Coordinator</span>
+          <p id="sidebarActiveCoordTemplate" style="font-size: 0.8rem; color: #fef08a; font-weight: 700; margin: 0.15rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Active Coordinator Template">Certificate of Coordination</p>
+        </div>
       </div>
     </aside>
 
@@ -666,28 +676,130 @@
 
             <!-- 2. BATCH / BULK ENTRY FORM -->
             <div id="eventCertBulkFormArea" style="display: none;">
-              <div style="background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.85rem;">
-                <p style="font-weight: 700; margin-bottom: 0.4rem; color: var(--text-main);">Paste multiple participants or coordinators below (one per line):</p>
-                <code style="background: #fff; padding: 0.2rem 0.5rem; border: 1px solid var(--surface-border); border-radius: 4px; display: inline-block;">
-                  RollNo, Full Name, Role (Student or Coordinator), Branch, Semester, Designation
-                </code>
-                <div style="margin-top: 0.6rem; display: flex; gap: 0.5rem;">
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="fillSampleBulkEventCerts()">
-                    📋 Load Sample Rows
+              
+              <!-- RECIPIENT CATEGORY SELECTOR FOR BULK -->
+              <div style="background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); margin-bottom: 1.25rem;">
+                <label class="form-label" style="font-weight: 700; margin-bottom: 0.5rem; display: block;">1. Select Bulk Recipient Target:</label>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                  <button type="button" id="bulkTargetCoordBtn" class="btn btn-warning btn-sm" onclick="setBulkRecipientTarget('coordinators')" style="font-weight: 700; border-radius: 6px; padding: 0.45rem 1rem;">
+                    ⭐ Bulk Event Coordinators
                   </button>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('eventCertBulkInput').value = ''">
-                    Clear
+                  <button type="button" id="bulkTargetPartBtn" class="btn btn-secondary btn-sm" onclick="setBulkRecipientTarget('participants')" style="border-radius: 6px; padding: 0.45rem 1rem;">
+                    🎓 Bulk Student Participants
                   </button>
+                  <button type="button" id="bulkTargetMixedBtn" class="btn btn-secondary btn-sm" onclick="setBulkRecipientTarget('mixed')" style="border-radius: 6px; padding: 0.45rem 1rem;">
+                    🔀 Mixed (Role specified per row)
+                  </button>
+                </div>
+                <div id="bulkTargetDescNotice" style="margin-top: 0.6rem; font-size: 0.8rem; color: #92400e; background: #fffaf0; padding: 0.5rem 0.75rem; border-radius: 4px; border-left: 3px solid #f59e0b;">
+                  ⭐ <strong>Coordinator Mode:</strong> All imported or pasted rows are automatically assigned as <strong>Event Coordinators</strong> and issued verified Coordinator Certificates.
                 </div>
               </div>
 
-              <div class="form-group">
-                <textarea id="eventCertBulkInput" class="form-control" rows="8" placeholder="22A81A0501, Aarav Sharma, Student, CSE, IV Semester B.Tech&#10;22A81A0502, Bhavya Sri, Coordinator, AIML, IV Semester B.Tech, Student Coordinator" style="font-family: monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
+              <!-- BULK INPUT METHOD SUBTABS -->
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--surface-border); padding-bottom: 0.5rem;">
+                <button type="button" id="bulkMethodFileBtn" class="btn btn-primary btn-sm" onclick="setBulkInputMethod('file')">
+                  📁 Upload Excel / CSV File
+                </button>
+                <button type="button" id="bulkMethodPasteBtn" class="btn btn-secondary btn-sm" onclick="setBulkInputMethod('paste')">
+                  📋 Paste Spreadsheet / Text
+                </button>
               </div>
 
-              <button type="button" id="bulkCertSubmitBtn" class="btn btn-primary" onclick="submitBulkEventCertificates()" style="padding: 0.75rem 1.75rem; font-weight: 700;">
-                ⚡ Process & Issue All Batch Certificates
-              </button>
+              <!-- METHOD A: FILE UPLOAD (EXCEL / CSV) -->
+              <div id="bulkFileMethodArea">
+                <div class="drop-zone" id="bulkCertDropZone" style="padding: 2rem 1.5rem; border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); text-align: center; background: #fff; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('bulkCertFileInput').click()">
+                  <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📁</div>
+                  <h4 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">
+                    Drag & Drop Coordinator / Student Excel File Here
+                  </h4>
+                  <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                    Supports <strong>.xlsx, .xls, or .csv</strong> with columns: <em>Roll No, Name, Branch, Semester, Designation</em>
+                  </p>
+                  <input type="file" id="bulkCertFileInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleBulkFileInputChange(event)">
+                  <div style="display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('bulkCertFileInput').click();">
+                      Browse File
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); downloadCoordinatorSampleExcel();" style="border-color: #f59e0b; color: #b45309;">
+                      📥 Download Coordinator Excel Template (.xlsx)
+                    </button>
+                  </div>
+                </div>
+
+                <!-- FILE PARSED PREVIEW CONTAINER -->
+                <div id="bulkFilePreviewArea" style="display: none; margin-top: 1.25rem; background: #fff; border: 1px solid var(--surface-border); border-radius: var(--radius-sm); padding: 1rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                      <strong id="bulkPreviewTitle" style="font-size: 0.95rem; color: var(--text-main);">Parsed 0 Records</strong>
+                      <span id="bulkPreviewBadge" class="badge badge-warning" style="margin-left: 0.5rem;">Ready to Issue</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                      <button type="button" id="btnSubmitBulkFile" class="btn btn-primary btn-sm" onclick="submitBulkFileRecipients()" style="font-weight: 700;">
+                        ⚡ Issue All Certificates Now
+                      </button>
+                      <button type="button" class="btn btn-secondary btn-sm" onclick="clearBulkFileSelection()">
+                        Cancel / Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="table-responsive" style="max-height: 240px; overflow-y: auto; border: 1px solid var(--surface-border); border-radius: 4px;">
+                    <table class="data-table" style="font-size: 0.8rem;">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Roll No</th>
+                          <th>Name</th>
+                          <th>Branch</th>
+                          <th>Semester</th>
+                          <th>Role</th>
+                          <th>Designation</th>
+                        </tr>
+                      </thead>
+                      <tbody id="bulkFilePreviewTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- METHOD B: PASTE TEXT / SPREADSHEET DATA -->
+              <div id="bulkPasteMethodArea" style="display: none;">
+                <div style="background: var(--surface-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem; font-size: 0.825rem;">
+                  <p style="font-weight: 700; margin-bottom: 0.3rem; color: var(--text-main);">
+                    Copy and paste rows directly from Excel, Google Sheets, or text (one per line):
+                  </p>
+                  <code id="bulkPasteFormatHint" style="background: #fff; padding: 0.2rem 0.5rem; border: 1px solid var(--surface-border); border-radius: 4px; display: inline-block;">
+                    RollNo, Full Name, Branch, Semester, Designation
+                  </code>
+                  <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fillSampleBulkEventCerts()">
+                      📋 Load Sample Rows
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('eventCertBulkInput').value = ''">
+                      Clear
+                    </button>
+                    <div style="margin-left: auto; display: flex; align-items: center; gap: 0.4rem;">
+                      <label style="font-size: 0.75rem; color: var(--text-muted);">Default Title:</label>
+                      <select id="bulkDefaultDesignation" class="form-control" style="font-size: 0.8rem; padding: 0.25rem 0.5rem; width: auto;">
+                        <option value="Student Coordinator">Student Coordinator</option>
+                        <option value="Lead Event Coordinator">Lead Event Coordinator</option>
+                        <option value="Technical Coordinator">Technical Coordinator</option>
+                        <option value="Organizing Committee">Organizing Committee</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0.85rem;">
+                  <textarea id="eventCertBulkInput" class="form-control" rows="8" placeholder="22A81A0501, Aarav Sharma, CSE, IV Semester B.Tech, Student Coordinator&#10;22A81A0502, Bhavya Sri, AIML, IV Semester B.Tech, Lead Event Coordinator&#10;22A81A0503, Chaitanya Varma, ECE, IV Semester B.Tech, Technical Coordinator" style="font-family: monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
+                </div>
+
+                <button type="button" id="bulkCertSubmitBtn" class="btn btn-primary" onclick="submitBulkEventCertificates()" style="padding: 0.75rem 1.75rem; font-weight: 700;">
+                  ⚡ Process & Issue All Batch Certificates
+                </button>
+              </div>
+
             </div>
 
           </div>
@@ -744,7 +856,10 @@
             <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Certificate Template Studio</h2>
             <p style="color: var(--text-muted); font-size: 0.9rem;">Fine-tune text placement coordinates (X, Y) and typography with live interactive preview</p>
           </div>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            <button type="button" id="btnStudioActivate" class="btn btn-warning btn-sm" onclick="manuallyActivateCurrentTemplate()" style="display: none; font-weight: 700;">
+              ⭐ Set as Active Template
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="resetStudioCoordinates()">↺ Reset Coordinates</button>
             <button class="btn btn-success btn-sm" onclick="saveTemplateCoordinates()">💾 Save Template Config</button>
           </div>
@@ -1245,8 +1360,9 @@
   <!-- TOAST CONTAINER -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- OFFLINE-READY PDF GENERATOR & ADMIN SCRIPTS -->
+  <!-- OFFLINE-READY PDF GENERATOR, SPREADSHEET ENGINE & ADMIN SCRIPTS -->
   <script src="/js/libs/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="/js/admin.js"></script>
 </body>
 </html>

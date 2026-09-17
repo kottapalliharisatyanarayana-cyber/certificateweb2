@@ -140,11 +140,14 @@ app.get(['/api/health', '/health'], (req, res) => {
 // Admin System Statistics Endpoint
 app.get(['/api/stats', '/stats'], async (req, res) => {
   try {
-    const [totalStudents, totalEvents, totalParticipations, activeTemplate] = await Promise.all([
+    const [totalStudents, totalEvents, totalParticipations, activePartTemplate, activeCoordTemplate] = await Promise.all([
       Student.countDocuments(),
       Event.countDocuments(),
       Participation.countDocuments({ participated: true }),
-      Template.findOne({ is_active: true }).select('template_name template_file')
+      Template.findOne({ template_type: 'participation', is_active: true }).select('template_name template_file')
+        .then(t => t || Template.findOne({ is_active: true }).select('template_name template_file')),
+      Template.findOne({ template_type: 'coordination', is_active: true }).select('template_name template_file')
+        .then(t => t || Template.findOne({ template_type: 'coordination' }).select('template_name template_file'))
     ]);
 
     const dbStatus = getStatus();
@@ -155,7 +158,8 @@ app.get(['/api/stats', '/stats'], async (req, res) => {
         totalStudents,
         totalEvents,
         totalParticipations,
-        activeTemplate: activeTemplate ? activeTemplate.template_name : 'None',
+        activeTemplate: activePartTemplate ? activePartTemplate.template_name : 'Sri Vasavi College (Participation)',
+        activeCoordTemplate: activeCoordTemplate ? activeCoordTemplate.template_name : 'Certificate of Coordination',
         dbMode: dbStatus.mode,
         dbConnected: dbStatus.connected
       }

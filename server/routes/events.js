@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const multer = require('multer');
+const xlsx = require('xlsx');
 const Event = require('../models/Event');
 const Student = require('../models/Student');
 const Participation = require('../models/Participation');
 const Template = require('../models/Template');
 const authMiddleware = require('../utils/authMiddleware');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 }
+});
 
 // GET /api/events (Public / Admin: List all events with participant & coordinator count & templates)
 router.get('/', async (req, res) => {
@@ -419,6 +426,9 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
       });
     }
 
+    const defaultRole = req.body.default_role || 'Student';
+    const defaultDesignation = req.body.default_designation || (defaultRole.toLowerCase().includes('coordinator') ? 'Student Coordinator' : 'Participant');
+
     let studentsIssued = 0;
     let coordinatorsIssued = 0;
     const errors = [];
@@ -432,7 +442,7 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
       }
 
       const rollUpper = rec.roll_no.trim().toUpperCase();
-      const role = rec.role || 'Student';
+      const role = rec.role || defaultRole;
       const isCoord = role.toLowerCase().includes('coordinator');
 
       let student = await Student.findOne({ roll_no: rollUpper });
@@ -460,8 +470,8 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
         .toUpperCase();
 
       const certId = `SVEC-${isCoord ? 'COORD' : 'PART'}-${hash}`;
-      const designation = isCoord ? (rec.designation || 'Student Coordinator') : 'Participant';
-      const certType = rec.certificate_type || (isCoord ? 'Appreciation' : 'Participation');
+      const designation = isCoord ? (rec.designation || defaultDesignation) : 'Participant';
+      const certType = rec.certificate_type || (isCoord ? 'Coordination' : 'Participation');
 
       await Participation.findOneAndUpdate(
         { student: student._id, event: event._id },
@@ -496,6 +506,140 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
       success: false,
       message: 'Failed to complete batch issuance: ' + err.message
     });
+  }
+});
+
+// POST /api/events/:id/upload-bulk (Admin: Direct Excel or CSV file upload for bulk coordinator / participant issuance)
+router.post('/:id/upload-bulk', authMiddleware, upload.single('file'), async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please upload a valid Excel (.xlsx, .xls) or CSV file.' });
+    }
+
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return res.status(400).json({ success: false, message: 'The uploaded file has no sheets.' });
+    }
+
+    const rawRows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+    if (!rawRows || rawRows.length === 0) {
+      return res.status(400).json({ success: false, message: 'The spreadsheet contains no data rows.' });
+    }
+
+    const defaultRole = req.body.default_role || 'Coordinator';
+    const defaultDesignation = req.body.default_designation || (defaultRole.toLowerCase().includes('coordinator') ? 'Student Coordinator' : 'Participant');
+
+    const recipients = [];
+    for (const row of rawRows) {
+      const keys = Object.keys(row);
+      const findVal = (patterns) => {
+        const k = keys.find(key => patterns.some(p => key.trim().toLowerCase().includes(p)));
+        return k ? String(row[k]).trim() : '';
+      };
+
+      const roll_no = findVal(['roll', 'reg', 'ht', 'id', 'ticket']);
+      const name = findVal(['name', 'student', 'coordinator']);
+      const branch = findVal(['branch', 'dept', 'department']) || 'CSE';
+      const semester = findVal(['sem', 'year']) || 'IV Semester B.Tech';
+      const designation = findVal(['designation', 'title']) || defaultDesignation;
+      const role = findVal(['role', 'category', 'type']) || defaultRole;
+      const email = findVal(['email', 'mail']) || '';
+
+      if (roll_no && name) {
+        recipients.push({
+          roll_no,
+          name,
+          branch,
+          semester,
+          designation,
+          role,
+          email,
+          certificate_type: role.toLowerCase().includes('coordinator') ? 'Coordination' : 'Participation'
+        });
+      }
+    }
+
+    if (recipients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid rows found. Please ensure the file contains columns for Roll No and Name.'
+      });
+    }
+
+    let studentsIssued = 0;
+    let coordinatorsIssued = 0;
+    const issueDateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    for (let i = 0; i < recipients.length; i++) {
+      const rec = recipients[i];
+      const rollUpper = rec.roll_no.trim().toUpperCase();
+      const role = rec.role || defaultRole;
+      const isCoord = role.toLowerCase().includes('coordinator');
+
+      let student = await Student.findOne({ roll_no: rollUpper });
+      if (student) {
+        student.name = rec.name.trim();
+        if (rec.email) student.email = rec.email.trim();
+        if (rec.semester) student.semester = rec.semester.trim();
+        if (rec.branch) student.branch = rec.branch.trim();
+        await student.save();
+      } else {
+        student = await Student.create({
+          roll_no: rollUpper,
+          name: rec.name.trim(),
+          email: rec.email || '',
+          semester: rec.semester || 'IV Semester B.Tech',
+          branch: rec.branch || 'CSE'
+        });
+      }
+
+      const hash = crypto
+        .createHash('sha256')
+        .update(`${student.roll_no}-${event._id}-${Date.now()}-${i}`)
+        .digest('hex')
+        .substring(0, 10)
+        .toUpperCase();
+
+      const certId = `SVEC-${isCoord ? 'COORD' : 'PART'}-${hash}`;
+      const designation = isCoord ? (rec.designation || defaultDesignation) : 'Participant';
+      const certType = rec.certificate_type || (isCoord ? 'Coordination' : 'Participation');
+
+      await Participation.findOneAndUpdate(
+        { student: student._id, event: event._id },
+        {
+          participated: true,
+          role,
+          designation,
+          certificate_type: certType,
+          certificate_id: certId,
+          issue_date: issueDateStr
+        },
+        { upsert: true, new: true }
+      );
+
+      if (isCoord) coordinatorsIssued++;
+      else studentsIssued++;
+    }
+
+    res.json({
+      success: true,
+      message: `File processed: ${coordinatorsIssued} coordinator certificates and ${studentsIssued} student certificates issued.`,
+      summary: {
+        totalRows: rawRows.length,
+        totalIssued: recipients.length,
+        coordinatorsIssued,
+        studentsIssued
+      }
+    });
+  } catch (err) {
+    console.error('File bulk issue error:', err);
+    res.status(500).json({ success: false, message: 'Failed to process file: ' + err.message });
   }
 });
 

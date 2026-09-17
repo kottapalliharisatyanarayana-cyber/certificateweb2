@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { parseExcelBuffer } = require('../utils/excelParser');
-const { generateSampleExcel } = require('../utils/sampleGenerator');
+const { generateSampleExcel, generateSampleCoordinatorsExcel } = require('../utils/sampleGenerator');
 const { parsePdfBuffer } = require('../utils/pdfParser');
 const { generateSamplePdf } = require('../utils/samplePdfGenerator');
 const Student = require('../models/Student');
@@ -15,7 +15,7 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 } // 15MB max
 });
 
-// GET /api/upload/sample-excel (Download sample Excel file)
+// GET /api/upload/sample-excel (Download sample Excel file for participants)
 router.get('/sample-excel', (req, res) => {
   try {
     const buffer = generateSampleExcel();
@@ -25,6 +25,19 @@ router.get('/sample-excel', (req, res) => {
   } catch (err) {
     console.error('Error generating sample Excel:', err);
     res.status(500).json({ success: false, message: 'Failed to generate sample Excel file: ' + err.message });
+  }
+});
+
+// GET /api/upload/sample-coordinators-excel (Download sample Excel file for coordinators)
+router.get('/sample-coordinators-excel', (req, res) => {
+  try {
+    const buffer = generateSampleCoordinatorsExcel();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="sample_coordinators_template.xlsx"');
+    res.send(buffer);
+  } catch (err) {
+    console.error('Error generating sample Coordinators Excel:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate sample Coordinators Excel file: ' + err.message });
   }
 });
 
@@ -106,12 +119,20 @@ router.post('/excel', authMiddleware, upload.single('file'), async (req, res) =>
       }
 
       // Link participations
+      const isCoordinatorImport = (req.body.import_role || '').toLowerCase().includes('coordinator');
       for (const evtName of record.events) {
         const eventId = eventMap[evtName];
         if (eventId) {
+          const updatePayload = {
+            participated: true,
+            role: isCoordinatorImport ? 'Coordinator' : 'Participant',
+            designation: isCoordinatorImport ? 'Student Coordinator' : 'Participant',
+            certificate_type: isCoordinatorImport ? 'Coordination' : 'Participation'
+          };
+
           const resPart = await Participation.findOneAndUpdate(
             { student: student._id, event: eventId },
-            { participated: true },
+            updatePayload,
             { upsert: true, new: true }
           );
           if (resPart) participationsCreated++;
