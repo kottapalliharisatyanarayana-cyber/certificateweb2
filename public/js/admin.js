@@ -1250,10 +1250,14 @@ async function handleUploadNewTemplate(e) {
     submitBtn.textContent = 'Uploading...';
   }
 
+  const setActiveCheckbox = document.getElementById('newTemplateSetActive');
+  const shouldBeActive = setActiveCheckbox ? setActiveCheckbox.checked : true;
+
   const formData = new FormData();
   formData.append('template_image', file);
   formData.append('template_name', templateName);
   formData.append('template_type', templateType);
+  formData.append('is_active', shouldBeActive ? 'true' : 'false');
 
   try {
     const res = await fetch('/api/templates/upload', {
@@ -1273,8 +1277,10 @@ async function handleUploadNewTemplate(e) {
       fileInput.value = '';
       if (nameInput) nameInput.value = '';
       currentTemplateType = templateType;
+      await loadTemplateLibrary();
       await loadTemplateStudio(data.template._id);
       await loadEvents();
+      await loadStats();
     } else {
       showToast(data.message || 'Template upload failed', 'error');
     }
@@ -2605,27 +2611,43 @@ async function drawAdminCertificateCanvas(cert) {
   const activeEvent = eventsCache.find(e => e._id === currentEventCertEventId) || {};
   const eventName = activeEvent.event_name || 'College Event';
 
-  canvas.width = 1024;
-  canvas.height = 682;
-
-  let templateFile = '/templates/svec_template.jpg';
-  let isDedicatedCoordTemplate = false;
-
+  // 1. Resolve template dynamically from event or active library templates
+  let chosenTemplate = null;
   if (isCoord) {
     if (activeEvent.use_main_template === false && activeEvent.coordinator_template) {
-      templateFile = activeEvent.coordinator_template.template_file || '/templates/svec_coordinator_template.jpg';
-    } else {
-      templateFile = '/templates/svec_coordinator_template.jpg';
+      chosenTemplate = activeEvent.coordinator_template;
     }
-    isDedicatedCoordTemplate = templateFile.includes('coordinator') || 
-      (activeEvent.coordinator_template && activeEvent.coordinator_template.template_type === 'coordination');
+    if (!chosenTemplate) {
+      chosenTemplate = allTemplatesList.find(t => t.template_type === 'coordination' && t.is_active)
+        || allTemplatesList.find(t => t.template_type === 'coordination');
+    }
   } else {
     if (activeEvent.use_main_template === false && activeEvent.template) {
-      templateFile = activeEvent.template.template_file || '/templates/svec_template.jpg';
-    } else {
-      templateFile = '/templates/svec_template.jpg';
+      chosenTemplate = activeEvent.template;
+    }
+    if (!chosenTemplate) {
+      chosenTemplate = allTemplatesList.find(t => t.template_type === 'participation' && t.is_active)
+        || allTemplatesList.find(t => t.template_type === 'participation');
     }
   }
+
+  // Fallback to currently selected template in studio if needed
+  if (!chosenTemplate && currentTemplate) {
+    chosenTemplate = currentTemplate;
+  }
+
+  const defaultImage = isCoord ? '/templates/svec_coordinator_template.jpg' : '/templates/svec_template.jpg';
+  const templateFile = chosenTemplate?.template_file || defaultImage;
+  const cfg = chosenTemplate?.fields_config || {};
+
+  canvas.width = cfg.canvas_width || 1024;
+  canvas.height = cfg.canvas_height || 682;
+
+  const isDedicatedCoordTemplate = isCoord && (
+    (chosenTemplate?.template_type === 'coordination') ||
+    templateFile.includes('coordinator') ||
+    templateFile.includes('COORD')
+  );
 
   const img = new Image();
   img.crossOrigin = 'anonymous';
@@ -2633,9 +2655,8 @@ async function drawAdminCertificateCanvas(cert) {
   await new Promise((resolve, reject) => {
     img.onload = () => resolve();
     img.onerror = () => {
-      const fallback = isCoord ? '/templates/svec_coordinator_template.jpg' : '/templates/svec_template.jpg';
-      if (img.src && !img.src.includes(fallback)) {
-        img.src = fallback;
+      if (img.src && !img.src.includes(defaultImage)) {
+        img.src = defaultImage;
       } else {
         reject(new Error('Failed to load certificate template image'));
       }
@@ -2648,18 +2669,31 @@ async function drawAdminCertificateCanvas(cert) {
 
   const student = cert.student || {};
 
-  // Positions on standard 1024x682 canvas
-  const nameX = 350, nameY = 355;
-  const semX = 125, semY = 382;
-  const branchX = 360, branchY = 382;
-  const rollX = 690, rollY = 382;
-  const eventX = 400, eventY = 409;
+  // Extract tuned coordinates with safe defaults
+  const nameX = cfg.name?.x ?? (isDedicatedCoordTemplate ? 390 : 350);
+  const nameY = cfg.name?.y ?? (isDedicatedCoordTemplate ? 300 : 355);
+  const nameSize = cfg.name?.fontSize ?? 20;
+
+  const semX = cfg.semester?.x ?? (isDedicatedCoordTemplate ? 170 : 125);
+  const semY = cfg.semester?.y ?? (isDedicatedCoordTemplate ? 332 : 382);
+  const semSize = cfg.semester?.fontSize ?? (isDedicatedCoordTemplate ? 18 : 16);
+
+  const branchX = cfg.branch?.x ?? (isDedicatedCoordTemplate ? 404 : 360);
+  const branchY = cfg.branch?.y ?? (isDedicatedCoordTemplate ? 332 : 382);
+  const branchSize = cfg.branch?.fontSize ?? (isDedicatedCoordTemplate ? 18 : 16);
+
+  const rollX = cfg.roll_no?.x ?? (isDedicatedCoordTemplate ? 731 : 690);
+  const rollY = cfg.roll_no?.y ?? (isDedicatedCoordTemplate ? 332 : 382);
+  const rollSize = cfg.roll_no?.fontSize ?? (isDedicatedCoordTemplate ? 18 : 16);
+
+  const eventX = cfg.events?.x ?? 400;
+  const eventY = cfg.events?.y ?? 409;
+  const eventSize = cfg.events?.fontSize ?? 16;
 
   ctx.textBaseline = 'middle';
 
-  // 2. COORDINATOR ADAPTATIONS (Fallback only when rendering coordinator on participation template)
+  // 2. COORDINATOR ADAPTATIONS (ONLY when rendering coordinator on participation template)
   if (isCoord && !isDedicatedCoordTemplate) {
-    // Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
     ctx.fillStyle = '#faf8f5';
     ctx.beginPath();
     ctx.roundRect(320, 285, 384, 26, 4);
@@ -2692,29 +2726,33 @@ async function drawAdminCertificateCanvas(cert) {
     ctx.restore();
   }
 
-  // 3. Render Recipient Dynamic Data
+  // 3. Render Recipient Dynamic Data with tuned font sizes and colors
   ctx.textAlign = 'left';
 
   // Name (Playfair serif)
-  ctx.font = 'bold 20px "Playfair Display", Georgia, serif';
-  ctx.fillStyle = '#1a1a2e';
+  ctx.font = `bold ${nameSize}px "Playfair Display", Georgia, serif`;
+  ctx.fillStyle = cfg.name?.color || '#1a1a2e';
   ctx.fillText(student.name || '-', nameX, nameY);
 
   // Semester
-  ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#1a1a2e';
+  ctx.font = `bold ${semSize}px "Plus Jakarta Sans", sans-serif`;
+  ctx.fillStyle = cfg.semester?.color || '#1a1a2e';
   ctx.fillText(student.semester || 'IV Semester', semX, semY);
 
   // Branch
+  ctx.font = `bold ${branchSize}px "Plus Jakarta Sans", sans-serif`;
+  ctx.fillStyle = cfg.branch?.color || '#1a1a2e';
   ctx.fillText(student.branch || 'CSE', branchX, branchY);
 
   // Roll Number / Coordinator ID
+  ctx.font = `bold ${rollSize}px "Plus Jakarta Sans", sans-serif`;
+  ctx.fillStyle = cfg.roll_no?.color || '#1a1a2e';
   ctx.fillText(student.roll_no || '-', rollX, rollY);
 
   // Event & Role display: ONLY on participation template (dedicated coordinator template omits events line)
   if (!isDedicatedCoordTemplate) {
-    ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#7b1113';
+    ctx.font = `bold ${eventSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillStyle = cfg.events?.color || '#7b1113';
     if (isCoord) {
       ctx.fillText(`${eventName} (${cert.designation || 'Student Coordinator'})`, eventX, eventY);
     } else {

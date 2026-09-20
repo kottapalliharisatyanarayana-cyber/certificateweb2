@@ -181,13 +181,15 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
     const assignedType = validTypes.includes(templateType) ? templateType : 'participation';
     const relativeFilePath = `/uploads/templates/${req.file.filename}`;
 
-    // Default configuration for text placement
+    const isCoord = (assignedType === 'coordination');
+
+    // Default configuration for text placement (tailored for participation vs coordination templates)
     const defaultFieldsConfig = {
       canvas_width: 1024,
       canvas_height: 682,
       name: {
-        x: 350,
-        y: 355,
+        x: isCoord ? 390 : 350,
+        y: isCoord ? 300 : 355,
         fontSize: 20,
         fontFamily: 'Playfair Display, serif',
         fontWeight: 'bold',
@@ -195,27 +197,27 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
         align: 'left'
       },
       semester: {
-        x: 125,
-        y: 382,
-        fontSize: 16,
+        x: isCoord ? 170 : 125,
+        y: isCoord ? 332 : 382,
+        fontSize: isCoord ? 18 : 16,
         fontFamily: 'Inter, sans-serif',
         fontWeight: 'bold',
         color: '#1a1a2e',
         align: 'left'
       },
       branch: {
-        x: 360,
-        y: 382,
-        fontSize: 16,
+        x: isCoord ? 404 : 360,
+        y: isCoord ? 332 : 382,
+        fontSize: isCoord ? 18 : 16,
         fontFamily: 'Inter, sans-serif',
         fontWeight: 'bold',
         color: '#1a1a2e',
         align: 'left'
       },
       roll_no: {
-        x: 690,
-        y: 382,
-        fontSize: 16,
+        x: isCoord ? 731 : 690,
+        y: isCoord ? 332 : 382,
+        fontSize: isCoord ? 18 : 16,
         fontFamily: 'Inter, sans-serif',
         fontWeight: 'bold',
         color: '#1a1a2e',
@@ -224,7 +226,7 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
     };
 
     // Events line is only added for participation templates (coordination templates omit it)
-    if (assignedType !== 'coordination') {
+    if (!isCoord) {
       defaultFieldsConfig.events = {
         x: 400,
         y: 409,
@@ -236,12 +238,19 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
       };
     }
 
+    // Determine if newly uploaded template should be active
+    const shouldActivate = req.body.is_active === 'true' || req.body.is_active === true || (await Template.countDocuments({ template_type: assignedType, is_active: true })) === 0;
+
+    if (shouldActivate) {
+      await Template.updateMany({ template_type: assignedType }, { is_active: false });
+    }
+
     const newTemplate = await Template.create({
       template_name: templateName,
       template_file: relativeFilePath,
       template_type: assignedType,
       fields_config: defaultFieldsConfig,
-      is_active: false
+      is_active: shouldActivate
     });
 
     // If an event_id was passed, optionally link this template directly to the event

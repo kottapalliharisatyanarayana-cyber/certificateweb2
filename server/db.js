@@ -19,18 +19,24 @@ let cachedPromise = null;
 // Disable command buffering in serverless to fail fast instead of hanging on timeouts
 mongoose.set('bufferCommands', false);
 
+// Isolated database name for certificateweb2 (Coordinators Portal)
+// Disconnected from certificate-portal-29kq to prevent data reflection
+const DB_NAME = process.env.MONGODB_DB_NAME || 'coordinator_certificate_db';
+
 const formatUri = (rawUri) => {
   if (!rawUri) return '';
   let uri = rawUri.trim().replace(/^["']|["']$/g, '');
   
   if (uri.startsWith('mongodb+srv://') || uri.startsWith('mongodb://')) {
-    // If uri has mongodb.net/? or mongodb.net? (empty db name before query string)
-    if (/mongodb\.net\/\?/.test(uri)) {
-      uri = uri.replace('mongodb.net/?', 'mongodb.net/certificate_db?');
+    // If uri specifies certificate_db, replace it with isolated coordinator_certificate_db
+    if (uri.includes('/certificate_db')) {
+      uri = uri.replace('/certificate_db', `/${DB_NAME}`);
+    } else if (/mongodb\.net\/\?/.test(uri)) {
+      uri = uri.replace('mongodb.net/?', `mongodb.net/${DB_NAME}?`);
     } else if (/mongodb\.net\/?$/.test(uri)) {
-      uri = uri.replace(/mongodb\.net\/?$/, 'mongodb.net/certificate_db?retryWrites=true&w=majority');
+      uri = uri.replace(/mongodb\.net\/?$/, `mongodb.net/${DB_NAME}?retryWrites=true&w=majority`);
     } else if (!/mongodb\.net\/[a-zA-Z0-9_-]+/.test(uri) && uri.includes('?')) {
-      uri = uri.replace('?', '/certificate_db?');
+      uri = uri.replace('?', `/${DB_NAME}?`);
     }
   }
   return uri;
@@ -39,7 +45,7 @@ const formatUri = (rawUri) => {
 const connectDB = async (customUri = null) => {
   const isCloud = !!(process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production');
   const primaryUri = formatUri(customUri || process.env.MONGODB_URI);
-  const localFallbackUri = isCloud ? null : 'mongodb://127.0.0.1:27017/certificate_db';
+  const localFallbackUri = isCloud ? null : `mongodb://127.0.0.1:27017/${DB_NAME}`;
 
   if (!primaryUri && !localFallbackUri) {
     lastError = 'MONGODB_URI is not set. Please provide a MongoDB Atlas connection string in your environment variables.';
@@ -120,18 +126,42 @@ const seedDefaults = async () => {
     const Template = require('./models/Template');
     const bcrypt = require('bcryptjs');
 
-    // 1. Seed Admin if none exists
-    const adminCount = await Admin.countDocuments();
-    if (adminCount === 0) {
-      const defaultUser = process.env.DEFAULT_ADMIN_USER || 'admin';
-      const defaultPass = process.env.DEFAULT_ADMIN_PASS || 'admin123';
-      const salt = await bcrypt.genSalt(10);
+    // 1. Seed or Sync Admin Accounts
+    const salt = await bcrypt.genSalt(10);
+
+    // Sync default admin (admin / admin@123)
+    const defaultUser = (process.env.DEFAULT_ADMIN_USER || 'admin').trim().toLowerCase();
+    const defaultPass = process.env.DEFAULT_ADMIN_PASS || 'admin@123';
+    let defaultAdmin = await Admin.findOne({ username: defaultUser });
+    if (!defaultAdmin) {
       const hash = await bcrypt.hash(defaultPass, salt);
       await Admin.create({
         username: defaultUser,
         password_hash: hash
       });
-      console.log(`👤 Default Admin created: ${defaultUser} / ${defaultPass}`);
+      console.log(`👤 Admin created: ${defaultUser} / ${defaultPass}`);
+    } else {
+      // Sync password to ensure login works with .env password
+      defaultAdmin.password_hash = await bcrypt.hash(defaultPass, salt);
+      await defaultAdmin.save();
+    }
+
+    // Sync custom admin if specified (e.g. ADMIN_USER=hari, ADMIN_PASS=@Meerayya@123)
+    if (process.env.ADMIN_USER && process.env.ADMIN_PASS) {
+      const customUser = process.env.ADMIN_USER.trim().toLowerCase();
+      const customPass = process.env.ADMIN_PASS;
+      let customAdmin = await Admin.findOne({ username: customUser });
+      if (!customAdmin) {
+        const hash = await bcrypt.hash(customPass, salt);
+        await Admin.create({
+          username: customUser,
+          password_hash: hash
+        });
+        console.log(`👤 Custom Admin created: ${customUser} / ${customPass}`);
+      } else {
+        customAdmin.password_hash = await bcrypt.hash(customPass, salt);
+        await customAdmin.save();
+      }
     }
 
     // 2. Seed Default Participation Template if none exists
