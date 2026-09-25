@@ -75,9 +75,10 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-// Static asset folders (for local development)
+// Static asset folders (for local development and cloud hosting)
 if (!process.env.VERCEL) {
   app.use(express.static(path.join(__dirname, '../frontend')));
+  app.use(express.static(path.join(__dirname, '../public')));
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 }
 
@@ -198,7 +199,9 @@ app.use(['/api/certificates', '/certificates'], certificateRoutes);
 if (!process.env.VERCEL) {
   // Admin portal route alias (Local development)
   app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/admin.html'));
+    const frontendAdmin = path.join(__dirname, '../frontend/admin.html');
+    const publicAdmin = path.join(__dirname, '../public/admin.html');
+    res.sendFile(fs.existsSync(frontendAdmin) ? frontendAdmin : publicAdmin);
   });
 
   // SPA fallback for student portal (Local development)
@@ -206,7 +209,9 @@ if (!process.env.VERCEL) {
     if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
       return next();
     }
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    const frontendIndex = path.join(__dirname, '../frontend/index.html');
+    const publicIndex = path.join(__dirname, '../public/index.html');
+    res.sendFile(fs.existsSync(frontendIndex) ? frontendIndex : publicIndex);
   });
 }
 
