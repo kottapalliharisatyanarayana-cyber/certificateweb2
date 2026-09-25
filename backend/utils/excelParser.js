@@ -6,15 +6,25 @@ const NAME_ALIASES = ['name', 'student name', 'full name', 'candidate name', 'pa
 const EMAIL_ALIASES = ['email', 'email id', 'email_id', 'mail', 'student email'];
 const SEM_ALIASES = ['semester', 'sem', 'year/sem', 'academic year'];
 const BRANCH_ALIASES = ['branch', 'department', 'dept', 'course'];
+const POSITION_ALIASES = ['position', 'pos', 'rank', 'prize', 'place', 'won', 'award', 'award/prize', 'won position', 'prize won', 'standing'];
+const EVENT_NAME_ALIASES = ['event', 'event name', 'event_name', 'competition', 'activity', 'contest'];
 
 const normalizeHeader = (header) => {
   return String(header || '').trim().toLowerCase().replace(/[\s_-]+/g, ' ');
 };
 
+const isPositionValue = (val) => {
+  if (val === null || val === undefined) return false;
+  const str = String(val).trim().toLowerCase();
+  if (!str) return false;
+  return /^(1st|2nd|3rd|4th|\d+(st|nd|rd|th)|first|second|third|winner|runner[\s-]?up|champion|1st prize|2nd prize|3rd prize|first prize|second prize|third prize)/i.test(str) ||
+         /(prize|place|position|rank|winner|runner)/i.test(str);
+};
+
 const isParticipatedValue = (val) => {
   if (val === null || val === undefined) return false;
   const str = String(val).trim().toLowerCase();
-  return ['yes', 'y', '1', 'true', 'participated', 'attended', 'present', 'winner', 'runner', 'p'].includes(str);
+  return ['yes', 'y', '1', 'true', 'participated', 'attended', 'present', 'winner', 'runner', 'p'].includes(str) || isPositionValue(val);
 };
 
 const parseExcelBuffer = (buffer) => {
@@ -39,6 +49,8 @@ const parseExcelBuffer = (buffer) => {
   let emailKey = null;
   let semKey = null;
   let branchKey = null;
+  let positionKey = null;
+  let singleEventKey = null;
   const eventKeys = [];
 
   for (const h of headers) {
@@ -53,6 +65,10 @@ const parseExcelBuffer = (buffer) => {
       semKey = h;
     } else if (!branchKey && BRANCH_ALIASES.includes(norm)) {
       branchKey = h;
+    } else if (!positionKey && POSITION_ALIASES.includes(norm)) {
+      positionKey = h;
+    } else if (!singleEventKey && EVENT_NAME_ALIASES.includes(norm)) {
+      singleEventKey = h;
     } else {
       // Any other non-empty column is treated as a potential event
       if (h.trim().length > 0) {
@@ -71,6 +87,7 @@ const parseExcelBuffer = (buffer) => {
   const validRecords = [];
   const invalidRecords = [];
   const seenRolls = new Set();
+  const allDetectedEvents = new Set();
 
   rawRows.forEach((row, index) => {
     const rowNum = index + 2; // Excel 1-based index (header is row 1)
@@ -79,6 +96,7 @@ const parseExcelBuffer = (buffer) => {
     const rawEmail = emailKey ? String(row[emailKey] || '').trim() : '';
     const rawSem = semKey ? String(row[semKey] || '').trim() : '';
     const rawBranch = branchKey ? String(row[branchKey] || '').trim() : '';
+    const rawPos = positionKey ? String(row[positionKey] || '').trim() : '';
 
     const errors = [];
 
@@ -95,12 +113,30 @@ const parseExcelBuffer = (buffer) => {
       errors.push(`Duplicate Roll Number in file: ${rollUpper}`);
     }
 
-    // Extract participated events for this student
+    // Extract participated events and positions for this student
     const participatedEvents = [];
+    const eventPositions = {};
+
+    // 1. If single dedicated event column exists
+    if (singleEventKey && String(row[singleEventKey] || '').trim()) {
+      const evtVal = String(row[singleEventKey] || '').trim();
+      participatedEvents.push(evtVal);
+      eventPositions[evtVal] = rawPos || '1st Prize';
+      allDetectedEvents.add(evtVal);
+    }
+
+    // 2. Multi-column event format (e.g. Coding Contest, Paper Presentation)
     eventKeys.forEach((evtHeader) => {
       const val = row[evtHeader];
       if (isParticipatedValue(val)) {
-        participatedEvents.push(evtHeader.trim());
+        const evtName = evtHeader.trim();
+        participatedEvents.push(evtName);
+        allDetectedEvents.add(evtName);
+        if (isPositionValue(val)) {
+          eventPositions[evtName] = String(val).trim();
+        } else if (rawPos) {
+          eventPositions[evtName] = rawPos;
+        }
       }
     });
 
@@ -119,10 +155,14 @@ const parseExcelBuffer = (buffer) => {
         email: rawEmail,
         semester: rawSem || 'IV Semester',
         branch: rawBranch || 'CSE',
-        events: participatedEvents
+        position: rawPos,
+        events: participatedEvents,
+        eventPositions
       });
     }
   });
+
+  const finalEventsList = Array.from(allDetectedEvents);
 
   return {
     headers,
@@ -132,16 +172,19 @@ const parseExcelBuffer = (buffer) => {
       email: emailKey,
       semester: semKey,
       branch: branchKey,
+      position: positionKey,
+      single_event: singleEventKey,
       events: eventKeys
     },
     totalRows: rawRows.length,
     validRecords,
     invalidRecords,
-    detectedEvents: eventKeys
+    detectedEvents: finalEventsList.length > 0 ? finalEventsList : eventKeys
   };
 };
 
 module.exports = {
   parseExcelBuffer,
-  isParticipatedValue
+  isParticipatedValue,
+  isPositionValue
 };

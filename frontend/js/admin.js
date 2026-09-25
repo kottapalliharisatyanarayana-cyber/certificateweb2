@@ -188,10 +188,12 @@ async function loadStats() {
       const statDbMode = document.getElementById('statDbMode');
       const sidebarTemplate = document.getElementById('sidebarActiveTemplate');
       const sidebarCoordTemplate = document.getElementById('sidebarActiveCoordTemplate');
+      const sidebarApprecTemplate = document.getElementById('sidebarActiveApprecTemplate');
 
       statDbMode.textContent = data.stats.dbMode || 'Connected';
       if (sidebarTemplate) sidebarTemplate.textContent = data.stats.activeTemplate || 'Sri Vasavi College (Participation)';
       if (sidebarCoordTemplate) sidebarCoordTemplate.textContent = data.stats.activeCoordTemplate || 'Certificate of Coordination';
+      if (sidebarApprecTemplate) sidebarApprecTemplate.textContent = data.stats.activeApprecTemplate || 'Certificate of Appreciation';
 
       dbBadge.style.display = 'inline-flex';
       dbBadge.textContent = `● ${data.stats.dbMode || 'DB Connected'}`;
@@ -507,12 +509,16 @@ function openEditEventModal(eventId) {
 
   const partId = event.template ? (event.template._id || event.template) : '';
   const coordId = event.coordinator_template ? (event.coordinator_template._id || event.coordinator_template) : '';
+  const apprecId = event.appreciation_template ? (event.appreciation_template._id || event.appreciation_template) : '';
 
   if (document.getElementById('editEventParticipantTemplate')) {
     document.getElementById('editEventParticipantTemplate').value = partId || '';
   }
   if (document.getElementById('editEventCoordinatorTemplate')) {
     document.getElementById('editEventCoordinatorTemplate').value = coordId || '';
+  }
+  if (document.getElementById('editEventAppreciationTemplate')) {
+    document.getElementById('editEventAppreciationTemplate').value = apprecId || '';
   }
 
   document.getElementById('editEventModal').classList.add('active');
@@ -533,6 +539,7 @@ async function handleUpdateEvent(e) {
   const useMain = document.getElementById('editEventUseMainTemplate').checked;
   const partTpl = document.getElementById('editEventParticipantTemplate').value || null;
   const coordTpl = document.getElementById('editEventCoordinatorTemplate').value || null;
+  const apprecTpl = document.getElementById('editEventAppreciationTemplate')?.value || null;
 
   const submitBtn = document.getElementById('editEventSubmitBtn');
   if (submitBtn) {
@@ -554,7 +561,8 @@ async function handleUpdateEvent(e) {
         description: desc,
         use_main_template: useMain,
         template: useMain ? null : partTpl,
-        coordinator_template: useMain ? null : coordTpl
+        coordinator_template: useMain ? null : coordTpl,
+        appreciation_template: useMain ? null : apprecTpl
       })
     });
 
@@ -592,6 +600,7 @@ async function handleCreateEvent(e) {
   const useMain = document.getElementById('newEventUseMainTemplate') ? document.getElementById('newEventUseMainTemplate').checked : true;
   const participantTemplate = document.getElementById('newEventParticipantTemplate')?.value || null;
   const coordinatorTemplate = document.getElementById('newEventCoordinatorTemplate')?.value || null;
+  const appreciationTemplate = document.getElementById('newEventAppreciationTemplate')?.value || null;
 
   try {
     const res = await fetch('/api/events', {
@@ -606,7 +615,8 @@ async function handleCreateEvent(e) {
         description: desc,
         use_main_template: useMain,
         template: useMain ? null : participantTemplate,
-        coordinator_template: useMain ? null : coordinatorTemplate
+        coordinator_template: useMain ? null : coordinatorTemplate,
+        appreciation_template: useMain ? null : appreciationTemplate
       })
     });
 
@@ -946,25 +956,40 @@ async function switchStudioTemplateType(type) {
 function updateStudioUIState() {
   const btnPart = document.getElementById('btnStudioTypePart');
   const btnCoord = document.getElementById('btnStudioTypeCoord');
+  const btnApprec = document.getElementById('btnStudioTypeApprec');
   const typeBadge = document.getElementById('studioTypeBadge');
   const activeBadge = document.getElementById('studioActiveBadge');
   const btnActivate = document.getElementById('btnStudioActivate');
   const selector = document.getElementById('studioTemplateSelector');
+  const groupPosition = document.getElementById('group-position-line');
   const groupEvents = document.getElementById('group-events-line');
   const noticeCoord = document.getElementById('coordinatorTemplateNotice');
+  const noticeApprec = document.getElementById('appreciationTemplateNotice');
 
   const isCoord = (currentTemplateType === 'coordination');
+  const isApprec = (currentTemplateType === 'appreciation');
 
   if (btnPart) {
-    btnPart.className = !isCoord ? 'template-pill-btn active' : 'template-pill-btn';
+    btnPart.className = (!isCoord && !isApprec) ? 'template-pill-btn active' : 'template-pill-btn';
   }
   if (btnCoord) {
     btnCoord.className = isCoord ? 'template-pill-btn active' : 'template-pill-btn';
   }
+  if (btnApprec) {
+    btnApprec.className = isApprec ? 'template-pill-btn active' : 'template-pill-btn';
+  }
 
   if (typeBadge && currentTemplate) {
-    typeBadge.textContent = isCoord ? '⭐ Coordination' : '🎓 Participation';
-    typeBadge.className = isCoord ? 'badge badge-warning' : 'badge badge-primary';
+    if (isCoord) {
+      typeBadge.textContent = '⭐ Coordination';
+      typeBadge.className = 'badge badge-warning';
+    } else if (isApprec) {
+      typeBadge.textContent = '🏅 Appreciation';
+      typeBadge.className = 'badge badge-success';
+    } else {
+      typeBadge.textContent = '🎓 Participation';
+      typeBadge.className = 'badge badge-primary';
+    }
   }
 
   // Active badge and manual activation button
@@ -976,7 +1001,8 @@ function updateStudioUIState() {
       if (activeBadge) activeBadge.style.display = 'none';
       if (btnActivate) {
         btnActivate.style.display = 'inline-block';
-        btnActivate.textContent = `⭐ Set as Active ${isCoord ? 'Coordinator' : 'Participation'} Template`;
+        const tplName = isCoord ? 'Coordinator' : isApprec ? 'Appreciation' : 'Participation';
+        btnActivate.textContent = `⭐ Set as Active ${tplName} Template`;
       }
     }
   }
@@ -985,14 +1011,22 @@ function updateStudioUIState() {
     selector.value = currentTemplate._id;
   }
 
-  // Events line is ONLY for Participation templates, hidden for Coordinator template
+  // Position line is ONLY for Appreciation templates
+  if (groupPosition) {
+    groupPosition.style.display = isApprec ? 'block' : 'none';
+  }
+
+  // Events line is for Participation and Appreciation templates, hidden for Coordinator template
   if (groupEvents) {
     groupEvents.style.display = isCoord ? 'none' : 'block';
   }
 
-  // Show informational notice for Coordinator template
+  // Notices
   if (noticeCoord) {
     noticeCoord.style.display = isCoord ? 'block' : 'none';
+  }
+  if (noticeApprec) {
+    noticeApprec.style.display = isApprec ? 'block' : 'none';
   }
 }
 
@@ -1015,12 +1049,21 @@ function populateStudioInputs(cfg, templateType) {
   setInputValue('coord-roll-y', cfg.roll_no?.y || 382);
   setInputValue('coord-roll-size', cfg.roll_no?.fontSize || 16);
 
+  setInputValue('coord-position-x', cfg.position?.x || 210);
+  setInputValue('coord-position-y', cfg.position?.y || 409);
+  setInputValue('coord-position-size', cfg.position?.fontSize || 17);
+
   setInputValue('coord-events-x', cfg.events?.x || 400);
   setInputValue('coord-events-y', cfg.events?.y || 409);
   setInputValue('coord-events-size', cfg.events?.fontSize || 16);
 
   const isCoord = (templateType === 'coordination');
+  const isApprec = (templateType === 'appreciation');
+  const groupPosition = document.getElementById('group-position-line');
   const groupEvents = document.getElementById('group-events-line');
+  if (groupPosition) {
+    groupPosition.style.display = isApprec ? 'block' : 'none';
+  }
   if (groupEvents) {
     groupEvents.style.display = isCoord ? 'none' : 'block';
   }
@@ -1028,6 +1071,10 @@ function populateStudioInputs(cfg, templateType) {
   const noticeCoord = document.getElementById('coordinatorTemplateNotice');
   if (noticeCoord) {
     noticeCoord.style.display = isCoord ? 'block' : 'none';
+  }
+  const noticeApprec = document.getElementById('appreciationTemplateNotice');
+  if (noticeApprec) {
+    noticeApprec.style.display = isApprec ? 'block' : 'none';
   }
 }
 
@@ -1055,7 +1102,9 @@ async function drawStudioPreview() {
 
   const defaultImage = currentTemplate.template_type === 'coordination'
     ? '/templates/svec_coordinator_template.jpg'
-    : '/templates/svec_template.jpg';
+    : currentTemplate.template_type === 'appreciation'
+      ? '/templates/svec_appreciation_template.jpg'
+      : '/templates/svec_template.jpg';
 
   const img = new Image();
   img.crossOrigin = 'anonymous';
@@ -1092,6 +1141,10 @@ async function drawStudioPreview() {
   const rollY = getInputValue('coord-roll-y', 382);
   const rollSize = getInputValue('coord-roll-size', 16);
 
+  const posX = getInputValue('coord-position-x', 210);
+  const posY = getInputValue('coord-position-y', 409);
+  const posSize = getInputValue('coord-position-size', 17);
+
   const evtX = getInputValue('coord-events-x', 400);
   const evtY = getInputValue('coord-events-y', 409);
   const evtSize = getInputValue('coord-events-size', 16);
@@ -1119,19 +1172,30 @@ async function drawStudioPreview() {
   ctx.fillStyle = '#1a1a2e';
   ctx.fillText('22A81A0501', rollX, rollY);
 
-  // Events line - only rendered for participation templates, NOT coordination templates
-  if (currentTemplate.template_type !== 'coordination') {
-    ctx.font = `bold ${evtSize}px "Plus Jakarta Sans", sans-serif`;
+  const isCoord = (currentTemplate.template_type === 'coordination');
+  const isApprec = (currentTemplate.template_type === 'appreciation');
+
+  // Position line - only rendered for appreciation templates
+  if (isApprec) {
+    ctx.font = `bold ${posSize}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = '#7b1113';
+    ctx.fillText('1st Prize', posX, posY);
+  }
+
+  // Events line - rendered for participation & appreciation templates, NOT coordination templates
+  if (!isCoord) {
+    ctx.font = `bold ${evtSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillStyle = isApprec ? '#1a1a2e' : '#7b1113';
     ctx.fillText('Tech Trifecta & AI Summit', evtX, evtY);
   }
 }
 
-// Save template coordinates (preserves clean coordinator template without events/designation)
+// Save template coordinates
 async function saveTemplateCoordinates() {
   if (!currentTemplate) return;
 
   const isCoord = (currentTemplate.template_type === 'coordination');
+  const isApprec = (currentTemplate.template_type === 'appreciation');
 
   const updatedConfig = {
     canvas_width: 1024,
@@ -1174,7 +1238,20 @@ async function saveTemplateCoordinates() {
     }
   };
 
-  // Events line is only stored for participation templates
+  // Position is stored for appreciation templates
+  if (isApprec) {
+    updatedConfig.position = {
+      x: getInputValue('coord-position-x', 210),
+      y: getInputValue('coord-position-y', 409),
+      fontSize: getInputValue('coord-position-size', 17),
+      fontFamily: 'Inter, sans-serif',
+      fontWeight: 'bold',
+      color: '#7b1113',
+      align: 'left'
+    };
+  }
+
+  // Events line is stored for participation and appreciation templates
   if (!isCoord) {
     updatedConfig.events = {
       x: getInputValue('coord-events-x', 400),
@@ -1182,7 +1259,7 @@ async function saveTemplateCoordinates() {
       fontSize: getInputValue('coord-events-size', 16),
       fontFamily: 'Inter, sans-serif',
       fontWeight: 'bold',
-      color: '#7b1113',
+      color: isApprec ? '#1a1a2e' : '#7b1113',
       align: 'left'
     };
   }
@@ -1212,14 +1289,24 @@ async function saveTemplateCoordinates() {
 
 function resetStudioCoordinates() {
   const isCoord = (currentTemplate?.template_type === 'coordination');
-  const defaults = {
+  const isApprec = (currentTemplate?.template_type === 'appreciation');
+  let defaults = {
     name: { x: 350, y: 355, fontSize: 20 },
     semester: { x: 125, y: 382, fontSize: 16 },
     branch: { x: 360, y: 382, fontSize: 16 },
     roll_no: { x: 690, y: 382, fontSize: 16 }
   };
 
-  if (!isCoord) {
+  if (isApprec) {
+    defaults = {
+      name: { x: 340, y: 355, fontSize: 20 },
+      semester: { x: 125, y: 382, fontSize: 16 },
+      branch: { x: 360, y: 382, fontSize: 16 },
+      roll_no: { x: 690, y: 382, fontSize: 16 },
+      position: { x: 210, y: 409, fontSize: 17 },
+      events: { x: 500, y: 409, fontSize: 16 }
+    };
+  } else if (!isCoord) {
     defaults.events = { x: 400, y: 409, fontSize: 16 };
   }
 
@@ -1319,12 +1406,16 @@ async function loadTemplateLibrary() {
 
     container.innerHTML = allTemplatesList.map(t => {
       const isCoord = (t.template_type === 'coordination');
+      const isApprec = (t.template_type === 'appreciation');
       const isCurrent = (currentTemplate && currentTemplate._id === t._id);
       const activeClass = isCurrent ? 'template-card active-tpl' : 'template-card';
 
-      const typeBadge = isCoord 
-        ? '<span class="badge badge-warning" style="font-size: 0.725rem;">⭐ Coordination</span>'
-        : '<span class="badge badge-primary" style="font-size: 0.725rem;">🎓 Participation</span>';
+      let typeBadge = '<span class="badge badge-primary" style="font-size: 0.725rem;">🎓 Participation</span>';
+      if (isCoord) {
+        typeBadge = '<span class="badge badge-warning" style="font-size: 0.725rem;">⭐ Coordination</span>';
+      } else if (isApprec) {
+        typeBadge = '<span class="badge badge-success" style="font-size: 0.725rem; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">🏅 Appreciation</span>';
+      }
 
       const activeBadge = t.is_active 
         ? '<span class="badge badge-success" style="font-size: 0.725rem;">● Active Default</span>' 
@@ -1435,7 +1526,9 @@ function populateTemplateSelectors() {
   if (studioSelector) {
     const opts = ['<option value="">-- Choose From Template Library --</option>'];
     allTemplatesList.forEach(t => {
-      const typeLabel = t.template_type === 'coordination' ? '⭐ Coordinator' : '🎓 Participant';
+      let typeLabel = '🎓 Participant';
+      if (t.template_type === 'coordination') typeLabel = '⭐ Coordinator';
+      else if (t.template_type === 'appreciation') typeLabel = '🏅 Appreciation';
       const activeLabel = t.is_active ? ' (Active)' : '';
       const selected = (currentTemplate && currentTemplate._id === t._id) ? ' selected' : '';
       opts.push(`<option value="${t._id}"${selected}>${escapeHtml(t.template_name)} [${typeLabel}]${activeLabel}</option>`);
@@ -1448,16 +1541,21 @@ function populateTemplateSelectors() {
 function populateEventTemplateDropdowns() {
   const newPartSelect = document.getElementById('newEventParticipantTemplate');
   const newCoordSelect = document.getElementById('newEventCoordinatorTemplate');
+  const newApprecSelect = document.getElementById('newEventAppreciationTemplate');
   const editPartSelect = document.getElementById('editEventParticipantTemplate');
   const editCoordSelect = document.getElementById('editEventCoordinatorTemplate');
+  const editApprecSelect = document.getElementById('editEventAppreciationTemplate');
 
   const partOptions = ['<option value="">-- Active Institutional Participation Template --</option>'];
   const coordOptions = ['<option value="">-- Active Institutional Coordination Template --</option>'];
+  const apprecOptions = ['<option value="">-- Active Institutional Appreciation Template --</option>'];
 
   allTemplatesList.forEach(t => {
     const opt = `<option value="${t._id}">${escapeHtml(t.template_name)}${t.is_active ? ' (Active)' : ''}</option>`;
     if (t.template_type === 'coordination') {
       coordOptions.push(opt);
+    } else if (t.template_type === 'appreciation') {
+      apprecOptions.push(opt);
     } else {
       partOptions.push(opt);
     }
@@ -1465,8 +1563,10 @@ function populateEventTemplateDropdowns() {
 
   if (newPartSelect) newPartSelect.innerHTML = partOptions.join('');
   if (newCoordSelect) newCoordSelect.innerHTML = coordOptions.join('');
+  if (newApprecSelect) newApprecSelect.innerHTML = apprecOptions.join('');
   if (editPartSelect) editPartSelect.innerHTML = partOptions.join('');
   if (editCoordSelect) editCoordSelect.innerHTML = coordOptions.join('');
+  if (editApprecSelect) editApprecSelect.innerHTML = apprecOptions.join('');
 }
 
 // Toast notification helper
@@ -1717,14 +1817,18 @@ async function loadEventCertificates(eventId) {
     document.getElementById('eventCertStatTotal').textContent = data.counts?.total || currentEventCertsList.length;
     document.getElementById('eventCertStatStudents').textContent = data.counts?.students || 0;
     document.getElementById('eventCertStatCoordinators').textContent = data.counts?.coordinators || 0;
+    const statApprec = document.getElementById('eventCertStatAppreciation');
+    if (statApprec) statApprec.textContent = data.counts?.appreciation || 0;
 
     // 2. Update count pills
     const pillAll = document.getElementById('countPillAll');
     const pillStudents = document.getElementById('countPillStudents');
     const pillCoords = document.getElementById('countPillCoordinators');
+    const pillApprec = document.getElementById('countPillAppreciation');
     if (pillAll) pillAll.textContent = data.counts?.total || currentEventCertsList.length;
     if (pillStudents) pillStudents.textContent = data.counts?.students || 0;
     if (pillCoords) pillCoords.textContent = data.counts?.coordinators || 0;
+    if (pillApprec) pillApprec.textContent = data.counts?.appreciation || 0;
 
     // 3. Show sections
     document.getElementById('eventCertSummaryBar').style.display = 'block';
@@ -1740,7 +1844,7 @@ async function loadEventCertificates(eventId) {
       if (event.useMainTemplate) {
         if (bannerIcon) bannerIcon.textContent = '🏛️';
         bannerTitle.textContent = 'Using Main Institutional Templates:';
-        bannerDetail.textContent = 'Sri Vasavi Engineering College (Participation & Coordination Templates)';
+        bannerDetail.textContent = 'Sri Vasavi Engineering College (Participation, Coordination & Appreciation Templates)';
         bannerBadge.textContent = '✓ Institutional Defaults';
         bannerBadge.className = 'badge badge-success';
       } else {
@@ -1748,7 +1852,8 @@ async function loadEventCertificates(eventId) {
         bannerTitle.textContent = 'Using Custom Event Templates:';
         const partName = event.template ? event.template.name : 'Active Participation';
         const coordName = event.coordinatorTemplate ? event.coordinatorTemplate.name : 'Active Coordination';
-        bannerDetail.textContent = `Participant: "${partName}" • Coordinator: "${coordName}"`;
+        const apprecName = event.appreciationTemplate ? event.appreciationTemplate.name : 'Active Appreciation';
+        bannerDetail.textContent = `Participant: "${partName}" • Coordinator: "${coordName}" • Appreciation: "${apprecName}"`;
         bannerBadge.textContent = '🎨 Custom Templates';
         bannerBadge.className = 'badge badge-primary';
       }
@@ -1762,16 +1867,18 @@ async function loadEventCertificates(eventId) {
   }
 }
 
-// Filter tabs handling (All, Students, Coordinators)
+// Filter tabs handling (All, Students, Coordinators, Appreciation)
 function setEventCertFilter(filter) {
   currentEventCertFilter = filter;
   const tabAll = document.getElementById('filterTabAll');
   const tabStudents = document.getElementById('filterTabStudents');
   const tabCoords = document.getElementById('filterTabCoordinators');
+  const tabApprec = document.getElementById('filterTabAppreciation');
 
   if (tabAll) tabAll.className = filter === 'all' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
   if (tabStudents) tabStudents.className = filter === 'students' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
   if (tabCoords) tabCoords.className = filter === 'coordinators' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+  if (tabApprec) tabApprec.className = filter === 'appreciation' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
 
   renderEventCertificatesTable();
 }
@@ -1791,9 +1898,13 @@ function renderEventCertificatesTable() {
 
   // Filter list
   let list = currentEventCertsList.filter(c => {
+    const isApprec = c.isAppreciation || c.certificateType === 'Appreciation' || Boolean(c.position);
+    const isCoord = !isApprec && (c.isCoordinator || (c.role || '').toLowerCase().includes('coordinator'));
+
     // Role filter
-    if (currentEventCertFilter === 'students' && c.isCoordinator) return false;
-    if (currentEventCertFilter === 'coordinators' && !c.isCoordinator) return false;
+    if (currentEventCertFilter === 'students' && (isCoord || isApprec)) return false;
+    if (currentEventCertFilter === 'coordinators' && !isCoord) return false;
+    if (currentEventCertFilter === 'appreciation' && !isApprec) return false;
 
     // Search query filter
     if (query) {
@@ -1801,16 +1912,18 @@ function renderEventCertificatesTable() {
       const matchName = (c.student?.name || '').toLowerCase().includes(query);
       const matchBranch = (c.student?.branch || '').toLowerCase().includes(query);
       const matchDesig = (c.designation || '').toLowerCase().includes(query);
-      return matchRoll || matchName || matchBranch || matchDesig;
+      const matchPos = (c.position || '').toLowerCase().includes(query);
+      return matchRoll || matchName || matchBranch || matchDesig || matchPos;
     }
     return true;
   });
 
   if (list.length === 0) {
+    const filterLabel = currentEventCertFilter === 'coordinators' ? 'coordinator' : currentEventCertFilter === 'appreciation' ? 'appreciation / winner' : currentEventCertFilter === 'students' ? 'student' : '';
     tbody.innerHTML = `
       <tr>
         <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
-          No ${currentEventCertFilter === 'coordinators' ? 'coordinator' : currentEventCertFilter === 'students' ? 'student' : ''} certificates found matching your criteria.
+          No ${filterLabel} certificates found matching your criteria.
         </td>
       </tr>
     `;
@@ -1818,14 +1931,20 @@ function renderEventCertificatesTable() {
   }
 
   tbody.innerHTML = list.map(c => {
-    const isCoord = c.isCoordinator;
-    const roleBadge = isCoord
-      ? `<span class="badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⭐ ${escapeHtml(c.designation || 'Coordinator')}</span>`
-      : `<span class="badge badge-primary">🎓 Student</span>`;
+    const isApprec = c.isAppreciation || c.certificateType === 'Appreciation' || Boolean(c.position);
+    const isCoord = !isApprec && (c.isCoordinator || (c.role || '').toLowerCase().includes('coordinator'));
 
-    const certTypeBadge = isCoord
-      ? `<span style="font-size: 0.8rem; font-weight: 600; color: #b45309;">📜 Appreciation</span>`
-      : `<span style="font-size: 0.8rem; font-weight: 600; color: #1e40af;">📜 Participation</span>`;
+    let roleBadge = `<span class="badge badge-primary">🎓 Student</span>`;
+    let certTypeBadge = `<span style="font-size: 0.8rem; font-weight: 600; color: #1e40af;">📜 Participation</span>`;
+
+    if (isApprec) {
+      const posText = c.position || c.designation || 'Winner';
+      roleBadge = `<span class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 700;">🏅 ${escapeHtml(posText)}</span>`;
+      certTypeBadge = `<span style="font-size: 0.8rem; font-weight: 600; color: #047857;">📜 Appreciation</span>`;
+    } else if (isCoord) {
+      roleBadge = `<span class="badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⭐ ${escapeHtml(c.designation || 'Coordinator')}</span>`;
+      certTypeBadge = `<span style="font-size: 0.8rem; font-weight: 600; color: #b45309;">📜 Coordination</span>`;
+    }
 
     // Package certificate data safely for button onclick
     const certJsonStr = encodeURIComponent(JSON.stringify(c));
@@ -1866,38 +1985,58 @@ function renderEventCertificatesTable() {
   }).join('');
 }
 
-// Role toggle in single issuance form (Student vs Coordinator)
+// Role toggle in single issuance form (Student vs Coordinator vs Appreciation)
 function handleCertRoleChange(role) {
   const cardStudent = document.getElementById('roleCardStudent');
   const cardCoordinator = document.getElementById('roleCardCoordinator');
+  const cardApprec = document.getElementById('roleCardAppreciation');
   const coordinatorFieldsArea = document.getElementById('coordinatorFieldsArea');
+  const appreciationFieldsArea = document.getElementById('appreciationFieldsArea');
   const labelRollText = document.getElementById('labelRollText');
   const certTypeSelect = document.getElementById('eventCertType');
+
+  if (cardStudent) { cardStudent.style.borderColor = 'var(--surface-border)'; cardStudent.style.background = '#fff'; }
+  if (cardCoordinator) { cardCoordinator.style.borderColor = 'var(--surface-border)'; cardCoordinator.style.background = '#fff'; }
+  if (cardApprec) { cardApprec.style.borderColor = 'var(--surface-border)'; cardApprec.style.background = '#fff'; }
 
   if (role === 'Coordinator') {
     if (cardCoordinator) {
       cardCoordinator.style.borderColor = '#d97706';
       cardCoordinator.style.background = '#fffaf0';
     }
-    if (cardStudent) {
-      cardStudent.style.borderColor = 'var(--surface-border)';
-      cardStudent.style.background = '#fff';
-    }
     if (coordinatorFieldsArea) coordinatorFieldsArea.style.display = 'block';
+    if (appreciationFieldsArea) appreciationFieldsArea.style.display = 'none';
     if (labelRollText) labelRollText.textContent = 'Coordinator ID / Roll Number';
-    if (certTypeSelect) certTypeSelect.value = 'Appreciation';
+    if (certTypeSelect) certTypeSelect.value = 'Coordination';
+  } else if (role === 'Appreciation') {
+    if (cardApprec) {
+      cardApprec.style.borderColor = '#059669';
+      cardApprec.style.background = '#ecfdf5';
+    }
+    if (coordinatorFieldsArea) coordinatorFieldsArea.style.display = 'none';
+    if (appreciationFieldsArea) appreciationFieldsArea.style.display = 'block';
+    if (labelRollText) labelRollText.textContent = 'Student Roll Number / Reg No';
   } else {
     if (cardStudent) {
       cardStudent.style.borderColor = 'var(--primary-light)';
       cardStudent.style.background = '#eff6ff';
     }
-    if (cardCoordinator) {
-      cardCoordinator.style.borderColor = 'var(--surface-border)';
-      cardCoordinator.style.background = '#fff';
-    }
     if (coordinatorFieldsArea) coordinatorFieldsArea.style.display = 'none';
+    if (appreciationFieldsArea) appreciationFieldsArea.style.display = 'none';
     if (labelRollText) labelRollText.textContent = 'Roll Number';
     if (certTypeSelect) certTypeSelect.value = 'Participation';
+  }
+}
+
+// Handle custom position input visibility
+function checkCustomPosition(val) {
+  const customInput = document.getElementById('eventCertCustomPosition');
+  if (!customInput) return;
+  if (val === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
   }
 }
 
@@ -1955,9 +2094,11 @@ async function handleIssueEventCertificate(e) {
   const roleRadio = document.querySelector('input[name="eventCertRoleOption"]:checked');
   const role = roleRadio ? roleRadio.value : 'Student';
   const isCoord = role === 'Coordinator';
+  const isApprec = role === 'Appreciation';
 
   let designation = 'Participant';
   let certificate_type = 'Participation';
+  let position = '';
 
   if (isCoord) {
     const desigSelect = document.getElementById('eventCertDesignation');
@@ -1969,7 +2110,18 @@ async function handleIssueEventCertificate(e) {
       designation = 'Student Coordinator';
     }
     const typeSelect = document.getElementById('eventCertType');
-    certificate_type = typeSelect ? typeSelect.value : 'Appreciation';
+    certificate_type = typeSelect ? typeSelect.value : 'Coordination';
+  } else if (isApprec) {
+    const posSelect = document.getElementById('eventCertPosition');
+    if (posSelect && posSelect.value === '__custom__') {
+      position = (document.getElementById('eventCertCustomPosition').value || '').trim() || 'Winner';
+    } else if (posSelect) {
+      position = posSelect.value;
+    } else {
+      position = 'Winner';
+    }
+    designation = position;
+    certificate_type = 'Appreciation';
   }
 
   const submitBtn = document.getElementById('issueCertSubmitBtn');
@@ -1989,8 +2141,9 @@ async function handleIssueEventCertificate(e) {
         branch,
         semester,
         email,
-        role: isCoord ? (designation || 'Coordinator') : 'Student',
+        role: isCoord ? (designation || 'Coordinator') : isApprec ? 'Winner' : 'Student',
         designation,
+        position,
         certificate_type
       })
     });
@@ -2018,6 +2171,10 @@ function resetEventCertSingleForm() {
   document.getElementById('eventCertRoll').value = '';
   document.getElementById('eventCertName').value = '';
   document.getElementById('eventCertEmail').value = '';
+  const posInput = document.getElementById('eventCertCustomPosition');
+  if (posInput) { posInput.value = ''; posInput.style.display = 'none'; }
+  const desigInput = document.getElementById('eventCertCustomDesignation');
+  if (desigInput) { desigInput.value = ''; desigInput.style.display = 'none'; }
   const radioStudent = document.querySelector('input[name="eventCertRoleOption"][value="Student"]');
   if (radioStudent) radioStudent.checked = true;
   handleCertRoleChange('Student');
@@ -2053,16 +2210,18 @@ function setEventCertMode(mode) {
   }
 }
 
-// Set Bulk Target Category (Coordinators, Participants, Mixed)
+// Set Bulk Target Category (Coordinators, Appreciation, Participants, Mixed)
 function setBulkRecipientTarget(target) {
   currentBulkTarget = target;
   const btnCoord = document.getElementById('bulkTargetCoordBtn');
+  const btnApprec = document.getElementById('bulkTargetApprecBtn');
   const btnPart = document.getElementById('bulkTargetPartBtn');
   const btnMixed = document.getElementById('bulkTargetMixedBtn');
   const notice = document.getElementById('bulkTargetDescNotice');
   const hint = document.getElementById('bulkPasteFormatHint');
 
   if (btnCoord) btnCoord.className = target === 'coordinators' ? 'btn btn-warning btn-sm' : 'btn btn-secondary btn-sm';
+  if (btnApprec) btnApprec.className = target === 'appreciation' ? 'btn btn-success btn-sm' : 'btn btn-secondary btn-sm';
   if (btnPart) btnPart.className = target === 'participants' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
   if (btnMixed) btnMixed.className = target === 'mixed' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
 
@@ -2073,6 +2232,12 @@ function setBulkRecipientTarget(target) {
       notice.style.borderColor = '#f59e0b';
       notice.style.color = '#92400e';
       notice.innerHTML = '⭐ <strong>Coordinator Mode:</strong> All imported rows will be registered as <strong>Event Coordinators</strong> with dedicated Coordinator Certificates.';
+    } else if (target === 'appreciation') {
+      notice.style.display = 'block';
+      notice.style.background = '#ecfdf5';
+      notice.style.borderColor = '#10b981';
+      notice.style.color = '#047857';
+      notice.innerHTML = '🏅 <strong>Appreciation / Winner Mode:</strong> All imported rows will be registered as <strong>Winners / Honorees</strong> with Certificates of Appreciation and position/prize.';
     } else if (target === 'participants') {
       notice.style.display = 'block';
       notice.style.background = '#eff6ff';
@@ -2084,17 +2249,19 @@ function setBulkRecipientTarget(target) {
       notice.style.background = '#f8fafc';
       notice.style.borderColor = '#94a3b8';
       notice.style.color = '#334155';
-      notice.innerHTML = '🔀 <strong>Mixed Mode:</strong> Specify the role (<em>Student</em> or <em>Coordinator</em>) in the file or per line.';
+      notice.innerHTML = '🔀 <strong>Mixed Mode:</strong> Specify the role (<em>Student</em>, <em>Coordinator</em>, or <em>Winner/Prize</em>) in the file or per line.';
     }
   }
 
   if (hint) {
     if (target === 'coordinators') {
       hint.textContent = 'RollNo, Full Name, Branch, Semester, Coordinator Designation';
+    } else if (target === 'appreciation') {
+      hint.textContent = 'RollNo, Full Name, Branch, Semester, Position / Prize (e.g. 1st Prize, Winner)';
     } else if (target === 'participants') {
       hint.textContent = 'RollNo, Full Name, Branch, Semester';
     } else {
-      hint.textContent = 'RollNo, Full Name, Role (Student or Coordinator), Branch, Semester, Designation';
+      hint.textContent = 'RollNo, Full Name, Role (Student, Coordinator, Winner), Branch, Semester, Designation/Position';
     }
   }
 }
@@ -2119,6 +2286,11 @@ function downloadCoordinatorSampleExcel() {
   window.location.href = '/api/upload/sample-coordinators-excel';
 }
 
+// Download Sample Appreciation Excel file
+function downloadAppreciationSampleExcel() {
+  window.location.href = '/api/upload/sample-appreciation-excel';
+}
+
 // Handle Excel/CSV file selection for bulk issuance
 async function handleBulkFileInputChange(e) {
   const file = e.target.files ? e.target.files[0] : null;
@@ -2137,8 +2309,10 @@ async function handleBulkFileInputChange(e) {
         return;
       }
 
-      const defaultRole = currentBulkTarget === 'coordinators' ? 'Coordinator' : 'Student';
-      const defaultDesig = document.getElementById('bulkDefaultDesignation')?.value || 'Student Coordinator';
+      const isTargetCoord = currentBulkTarget === 'coordinators';
+      const isTargetApprec = currentBulkTarget === 'appreciation';
+      const defaultRole = isTargetCoord ? 'Coordinator' : isTargetApprec ? 'Winner' : 'Student';
+      const defaultDesig = isTargetApprec ? 'Winner' : (document.getElementById('bulkDefaultDesignation')?.value || 'Student Coordinator');
 
       currentBulkParsedRecipients = [];
 
@@ -2150,24 +2324,44 @@ async function handleBulkFileInputChange(e) {
         };
 
         const roll_no = findVal(['roll', 'reg', 'ht', 'id', 'ticket']);
-        const name = findVal(['name', 'student', 'coordinator']);
+        const name = findVal(['name', 'student', 'coordinator', 'winner']);
         const branch = findVal(['branch', 'dept', 'department']) || 'CSE';
         const semester = findVal(['sem', 'year']) || 'IV Semester B.Tech';
-        const designation = findVal(['designation', 'title']) || (defaultRole === 'Coordinator' ? defaultDesig : 'Participant');
+        const position = findVal(['position', 'prize', 'rank', 'award', 'place', 'medal']);
+        const designation = findVal(['designation', 'title']) || position || (isTargetCoord ? defaultDesig : isTargetApprec ? 'Winner' : 'Participant');
         const role = findVal(['role', 'category', 'type']) || defaultRole;
         const email = findVal(['email', 'mail']) || '';
 
         if (roll_no && name) {
-          const isCoord = role.toLowerCase().includes('coordinator') || currentBulkTarget === 'coordinators';
+          const isApprec = isTargetApprec || Boolean(position) || role.toLowerCase().includes('winner') || role.toLowerCase().includes('prize') || role.toLowerCase().includes('appreciation');
+          const isCoord = !isApprec && (role.toLowerCase().includes('coordinator') || isTargetCoord);
+
+          let assignedRole = 'Student';
+          let assignedCertType = 'Participation';
+          let assignedDesig = 'Participant';
+          let assignedPos = '';
+
+          if (isApprec) {
+            assignedRole = 'Winner';
+            assignedCertType = 'Appreciation';
+            assignedPos = position || designation || 'Winner';
+            assignedDesig = assignedPos;
+          } else if (isCoord) {
+            assignedRole = 'Coordinator';
+            assignedCertType = 'Coordination';
+            assignedDesig = designation || defaultDesig;
+          }
+
           currentBulkParsedRecipients.push({
             roll_no,
             name,
             branch,
             semester,
-            role: isCoord ? 'Coordinator' : 'Student',
-            designation: isCoord ? (designation || defaultDesig) : 'Participant',
+            role: assignedRole,
+            designation: assignedDesig,
+            position: assignedPos,
             email,
-            certificate_type: isCoord ? 'Coordination' : 'Participation'
+            certificate_type: assignedCertType
           });
         }
       }
@@ -2202,24 +2396,36 @@ function renderBulkFilePreview() {
 
   const count = currentBulkParsedRecipients.length;
   const isCoord = currentBulkTarget === 'coordinators';
+  const isApprec = currentBulkTarget === 'appreciation';
 
-  if (title) title.textContent = `Parsed ${count} ${isCoord ? 'Coordinators' : 'Recipients'}`;
+  if (title) title.textContent = `Parsed ${count} ${isCoord ? 'Coordinators' : isApprec ? 'Winners / Honorees' : 'Recipients'}`;
   if (badge) {
     badge.textContent = `${count} Ready to Issue`;
-    badge.className = isCoord ? 'badge badge-warning' : 'badge badge-primary';
+    badge.className = isCoord ? 'badge badge-warning' : isApprec ? 'badge badge-success' : 'badge badge-primary';
   }
 
-  tbody.innerHTML = currentBulkParsedRecipients.slice(0, 50).map((r, idx) => `
-    <tr>
-      <td>${idx + 1}</td>
-      <td><strong>${escapeHtml(r.roll_no)}</strong></td>
-      <td>${escapeHtml(r.name)}</td>
-      <td>${escapeHtml(r.branch)}</td>
-      <td>${escapeHtml(r.semester)}</td>
-      <td><span class="badge ${r.role === 'Coordinator' ? 'badge-warning' : 'badge-primary'}">${r.role}</span></td>
-      <td style="color: ${r.role === 'Coordinator' ? '#b45309' : '#64748b'}; font-weight: 600;">${escapeHtml(r.designation)}</td>
-    </tr>
-  `).join('') + (count > 50 ? `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">... and ${count - 50} more rows</td></tr>` : '');
+  tbody.innerHTML = currentBulkParsedRecipients.slice(0, 50).map((r, idx) => {
+    let rBadge = `<span class="badge badge-primary">${r.role}</span>`;
+    let dColor = '#64748b';
+    if (r.role === 'Coordinator' || r.certificate_type === 'Coordination') {
+      rBadge = `<span class="badge badge-warning">Coordinator</span>`;
+      dColor = '#b45309';
+    } else if (r.role === 'Winner' || r.certificate_type === 'Appreciation' || r.position) {
+      rBadge = `<span class="badge badge-success" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">🏅 ${escapeHtml(r.position || 'Winner')}</span>`;
+      dColor = '#047857';
+    }
+    return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td><strong>${escapeHtml(r.roll_no)}</strong></td>
+        <td>${escapeHtml(r.name)}</td>
+        <td>${escapeHtml(r.branch)}</td>
+        <td>${escapeHtml(r.semester)}</td>
+        <td>${rBadge}</td>
+        <td style="color: ${dColor}; font-weight: 600;">${escapeHtml(r.position || r.designation)}</td>
+      </tr>
+    `;
+  }).join('') + (count > 50 ? `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">... and ${count - 50} more rows</td></tr>` : '');
 
   area.style.display = 'block';
 }
@@ -2251,6 +2457,9 @@ async function submitBulkFileRecipients() {
   }
 
   try {
+    const defaultRole = currentBulkTarget === 'coordinators' ? 'Coordinator' : currentBulkTarget === 'appreciation' ? 'Winner' : 'Student';
+    const defaultCertType = currentBulkTarget === 'coordinators' ? 'Coordination' : currentBulkTarget === 'appreciation' ? 'Appreciation' : 'Participation';
+
     const { res, data } = await safeFetch(`/api/events/${currentEventCertEventId}/bulk-issue`, {
       method: 'POST',
       headers: {
@@ -2259,7 +2468,8 @@ async function submitBulkFileRecipients() {
       },
       body: JSON.stringify({
         recipients: currentBulkParsedRecipients,
-        default_role: currentBulkTarget === 'coordinators' ? 'Coordinator' : 'Student',
+        default_role: defaultRole,
+        default_certificate_type: defaultCertType,
         default_designation: document.getElementById('bulkDefaultDesignation')?.value || 'Student Coordinator'
       })
     });
@@ -2293,9 +2503,13 @@ async function uploadBulkFileToServer(file) {
     return;
   }
 
+  const defaultRole = currentBulkTarget === 'coordinators' ? 'Coordinator' : currentBulkTarget === 'appreciation' ? 'Winner' : 'Student';
+  const defaultCertType = currentBulkTarget === 'coordinators' ? 'Coordination' : currentBulkTarget === 'appreciation' ? 'Appreciation' : 'Participation';
+
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('default_role', currentBulkTarget === 'coordinators' ? 'Coordinator' : 'Student');
+  formData.append('default_role', defaultRole);
+  formData.append('default_certificate_type', defaultCertType);
   formData.append('default_designation', document.getElementById('bulkDefaultDesignation')?.value || 'Student Coordinator');
 
   showToast(`Uploading and processing "${file.name}"...`, 'info');
@@ -2333,6 +2547,14 @@ function fillSampleBulkEventCerts() {
       '22A81A0504, Divya Jyothi, IT, IV Semester B.Tech, Organizing Committee Lead',
       '22A81A0505, Eshwar Prasad, Mechanical, IV Semester B.Tech, Student Coordinator'
     ].join('\n');
+  } else if (currentBulkTarget === 'appreciation') {
+    input.value = [
+      '22A81A0501, Aarav Sharma, CSE, IV Semester B.Tech, 1st Prize',
+      '22A81A0502, Bhavya Sri, AIML, IV Semester B.Tech, 2nd Prize',
+      '22A81A0503, Chaitanya Varma, ECE, IV Semester B.Tech, 3rd Prize',
+      '22A81A0504, Divya Jyothi, IT, IV Semester B.Tech, Winner',
+      '22A81A0505, Eshwar Prasad, Mechanical, IV Semester B.Tech, Runner-Up'
+    ].join('\n');
   } else if (currentBulkTarget === 'participants') {
     input.value = [
       '22A81A0501, Aarav Sharma, CSE, IV Semester B.Tech',
@@ -2345,7 +2567,7 @@ function fillSampleBulkEventCerts() {
     input.value = [
       '22A81A0501, Aarav Sharma, Student, CSE, IV Semester B.Tech, Participant',
       '22A81A0502, Bhavya Sri, Coordinator, AIML, IV Semester B.Tech, Student Coordinator',
-      '22A81A0503, Chaitanya Varma, Student, ECE, IV Semester B.Tech, Participant',
+      '22A81A0503, Chaitanya Varma, Winner, ECE, IV Semester B.Tech, 1st Prize',
       '22A81A0504, Divya Jyothi, Coordinator, CSE, IV Semester B.Tech, Technical Coordinator'
     ].join('\n');
   }
@@ -2396,6 +2618,23 @@ async function submitBulkEventCertificates() {
         certificate_type: 'Coordination'
       });
 
+    } else if (currentBulkTarget === 'appreciation') {
+      // Appreciation Mode: RollNo, Name, [Branch], [Semester], [Position]
+      const branch = parts[2] || 'CSE';
+      const semester = parts[3] || 'IV Semester B.Tech';
+      const position = parts[4] || 'Winner';
+
+      recipients.push({
+        roll_no,
+        name,
+        branch,
+        semester,
+        role: 'Winner',
+        designation: position,
+        position: position,
+        certificate_type: 'Appreciation'
+      });
+
     } else if (currentBulkTarget === 'participants') {
       // Participant Mode: RollNo, Name, [Branch], [Semester]
       const branch = parts[2] || 'CSE';
@@ -2414,19 +2653,21 @@ async function submitBulkEventCertificates() {
     } else {
       // Mixed Mode: RollNo, Name, [Role], [Branch], [Semester], [Designation]
       const roleInput = parts[2] || 'Student';
-      const isCoord = roleInput.toLowerCase().includes('coordinator');
+      const isApprec = roleInput.toLowerCase().includes('winner') || roleInput.toLowerCase().includes('prize') || roleInput.toLowerCase().includes('appreciation');
+      const isCoord = !isApprec && roleInput.toLowerCase().includes('coordinator');
       const branch = parts[3] || 'CSE';
       const semester = parts[4] || 'IV Semester B.Tech';
-      const designation = parts[5] || (isCoord ? defaultDesig : 'Participant');
+      const designation = parts[5] || (isApprec ? 'Winner' : isCoord ? defaultDesig : 'Participant');
 
       recipients.push({
         roll_no,
         name,
-        role: isCoord ? 'Coordinator' : 'Student',
+        role: isApprec ? 'Winner' : isCoord ? 'Coordinator' : 'Student',
         branch,
         semester,
         designation,
-        certificate_type: isCoord ? 'Coordination' : 'Participation'
+        position: isApprec ? designation : '',
+        certificate_type: isApprec ? 'Appreciation' : isCoord ? 'Coordination' : 'Participation'
       });
     }
   }
@@ -2441,6 +2682,9 @@ async function submitBulkEventCertificates() {
   submitBtn.textContent = `Processing ${recipients.length} recipients...`;
 
   try {
+    const defaultRole = currentBulkTarget === 'coordinators' ? 'Coordinator' : currentBulkTarget === 'appreciation' ? 'Winner' : 'Student';
+    const defaultCertType = currentBulkTarget === 'coordinators' ? 'Coordination' : currentBulkTarget === 'appreciation' ? 'Appreciation' : 'Participation';
+
     const { res, data } = await safeFetch(`/api/events/${currentEventCertEventId}/bulk-issue`, {
       method: 'POST',
       headers: {
@@ -2449,7 +2693,8 @@ async function submitBulkEventCertificates() {
       },
       body: JSON.stringify({
         recipients,
-        default_role: currentBulkTarget === 'coordinators' ? 'Coordinator' : 'Student',
+        default_role: defaultRole,
+        default_certificate_type: defaultCertType,
         default_designation: defaultDesig
       })
     });
@@ -2581,15 +2826,36 @@ async function openAdminCertPreview(cert) {
   const badge = document.getElementById('adminModalRoleBadge');
   const subtitle = document.getElementById('adminModalCertSubtitle');
 
-  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
-  title.textContent = isCoord ? 'Coordinator Certificate of Appreciation' : 'Student Certificate of Participation';
-  badge.textContent = isCoord ? `⭐ ${cert.designation || 'Coordinator'}` : '🎓 Participant';
-  badge.className = isCoord ? 'badge badge-warning' : 'badge badge-primary';
+  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator') || cert.certificateType === 'Coordination';
+  const isApprec = cert.isAppreciation || cert.certificateType === 'Appreciation' || Boolean(cert.position) || (cert.role || '').toLowerCase().includes('winner');
+
+  if (isApprec) {
+    title.textContent = 'Certificate of Appreciation';
+    badge.textContent = `🏅 ${cert.position || 'Winner'}`;
+    badge.className = 'badge badge-success';
+  } else if (isCoord) {
+    title.textContent = 'Coordinator Certificate of Appreciation';
+    badge.textContent = `⭐ ${cert.designation || 'Coordinator'}`;
+    badge.className = 'badge badge-warning';
+  } else {
+    title.textContent = 'Student Certificate of Participation';
+    badge.textContent = '🎓 Participant';
+    badge.className = 'badge badge-primary';
+  }
 
   const activeEvent = eventsCache.find(e => e._id === currentEventCertEventId) || {};
-  const tplDesc = activeEvent.use_main_template !== false
-    ? (isCoord ? 'Dedicated Coordination Template' : 'Institutional Participation Template')
-    : (isCoord ? (activeEvent.coordinator_template?.template_name || 'Custom Coordinator Template') : (activeEvent.template?.template_name || 'Custom Participant Template'));
+  let tplDesc = '';
+  if (activeEvent.use_main_template !== false) {
+    tplDesc = isApprec ? 'Institutional Appreciation Template' : (isCoord ? 'Dedicated Coordination Template' : 'Institutional Participation Template');
+  } else {
+    if (isApprec) {
+      tplDesc = activeEvent.appreciation_template?.template_name || 'Custom Appreciation Template';
+    } else if (isCoord) {
+      tplDesc = activeEvent.coordinator_template?.template_name || 'Custom Coordinator Template';
+    } else {
+      tplDesc = activeEvent.template?.template_name || 'Custom Participant Template';
+    }
+  }
 
   subtitle.textContent = `${cert.student?.name} (${cert.student?.roll_no}) • ${tplDesc}`;
 
@@ -2601,19 +2867,28 @@ function closeAdminCertModal() {
   document.getElementById('adminCertPreviewModal').classList.remove('active');
 }
 
-// Core Canvas Drawing Engine using Dedicated Coordinator & Participation Templates
+// Core Canvas Drawing Engine using Dedicated Coordinator, Appreciation & Participation Templates
 async function drawAdminCertificateCanvas(cert) {
   const canvas = document.getElementById('adminCertCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
+  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator') || cert.certificateType === 'Coordination';
+  const isApprec = cert.isAppreciation || cert.certificateType === 'Appreciation' || Boolean(cert.position) || (cert.role || '').toLowerCase().includes('winner');
   const activeEvent = eventsCache.find(e => e._id === currentEventCertEventId) || {};
   const eventName = activeEvent.event_name || 'College Event';
 
   // 1. Resolve template dynamically from event or active library templates
   let chosenTemplate = null;
-  if (isCoord) {
+  if (isApprec) {
+    if (activeEvent.use_main_template === false && activeEvent.appreciation_template) {
+      chosenTemplate = activeEvent.appreciation_template;
+    }
+    if (!chosenTemplate) {
+      chosenTemplate = allTemplatesList.find(t => t.template_type === 'appreciation' && t.is_active)
+        || allTemplatesList.find(t => t.template_type === 'appreciation');
+    }
+  } else if (isCoord) {
     if (activeEvent.use_main_template === false && activeEvent.coordinator_template) {
       chosenTemplate = activeEvent.coordinator_template;
     }
@@ -2633,10 +2908,18 @@ async function drawAdminCertificateCanvas(cert) {
 
   // Fallback to currently selected template in studio if needed
   if (!chosenTemplate && currentTemplate) {
-    chosenTemplate = currentTemplate;
+    if (isApprec && currentTemplate.template_type === 'appreciation') {
+      chosenTemplate = currentTemplate;
+    } else if (isCoord && currentTemplate.template_type === 'coordination') {
+      chosenTemplate = currentTemplate;
+    } else if (!isCoord && !isApprec && currentTemplate.template_type === 'participation') {
+      chosenTemplate = currentTemplate;
+    }
   }
 
-  const defaultImage = isCoord ? '/templates/svec_coordinator_template.jpg' : '/templates/svec_template.jpg';
+  const defaultImage = isApprec
+    ? '/templates/svec_appreciation_template.jpg'
+    : (isCoord ? '/templates/svec_coordinator_template.jpg' : '/templates/svec_template.jpg');
   const templateFile = chosenTemplate?.template_file || defaultImage;
   const cfg = chosenTemplate?.fields_config || {};
 
@@ -2647,6 +2930,11 @@ async function drawAdminCertificateCanvas(cert) {
     (chosenTemplate?.template_type === 'coordination') ||
     templateFile.includes('coordinator') ||
     templateFile.includes('COORD')
+  );
+
+  const isDedicatedApprecTemplate = isApprec && (
+    (chosenTemplate?.template_type === 'appreciation') ||
+    templateFile.includes('appreciation')
   );
 
   const img = new Image();
@@ -2669,31 +2957,56 @@ async function drawAdminCertificateCanvas(cert) {
 
   const student = cert.student || {};
 
-  // Extract tuned coordinates with safe defaults
-  const nameX = cfg.name?.x ?? (isDedicatedCoordTemplate ? 390 : 350);
-  const nameY = cfg.name?.y ?? (isDedicatedCoordTemplate ? 300 : 355);
-  const nameSize = cfg.name?.fontSize ?? 20;
+  // Extract tuned coordinates with safe defaults for each template type
+  let defaultNameX = 350, defaultNameY = 355, defaultNameSize = 20;
+  let defaultSemX = 125, defaultSemY = 382, defaultSemSize = 16;
+  let defaultBranchX = 360, defaultBranchY = 382, defaultBranchSize = 16;
+  let defaultRollX = 690, defaultRollY = 382, defaultRollSize = 16;
+  let defaultEventX = 400, defaultEventY = 409, defaultEventSize = 16, defaultEventColor = '#7b1113';
 
-  const semX = cfg.semester?.x ?? (isDedicatedCoordTemplate ? 170 : 125);
-  const semY = cfg.semester?.y ?? (isDedicatedCoordTemplate ? 332 : 382);
-  const semSize = cfg.semester?.fontSize ?? (isDedicatedCoordTemplate ? 18 : 16);
+  if (isDedicatedCoordTemplate) {
+    defaultNameX = 390; defaultNameY = 300; defaultNameSize = 20;
+    defaultSemX = 170; defaultSemY = 332; defaultSemSize = 18;
+    defaultBranchX = 404; defaultBranchY = 332; defaultBranchSize = 18;
+    defaultRollX = 731; defaultRollY = 332; defaultRollSize = 18;
+  } else if (isDedicatedApprecTemplate || isApprec) {
+    defaultNameX = 340; defaultNameY = 355; defaultNameSize = 20;
+    defaultSemX = 125; defaultSemY = 382; defaultSemSize = 16;
+    defaultBranchX = 360; defaultBranchY = 382; defaultBranchSize = 16;
+    defaultRollX = 690; defaultRollY = 382; defaultRollSize = 16;
+    defaultEventX = 500; defaultEventY = 409; defaultEventSize = 16; defaultEventColor = '#1a1a2e';
+  }
 
-  const branchX = cfg.branch?.x ?? (isDedicatedCoordTemplate ? 404 : 360);
-  const branchY = cfg.branch?.y ?? (isDedicatedCoordTemplate ? 332 : 382);
-  const branchSize = cfg.branch?.fontSize ?? (isDedicatedCoordTemplate ? 18 : 16);
+  const nameX = cfg.name?.x ?? defaultNameX;
+  const nameY = cfg.name?.y ?? defaultNameY;
+  const nameSize = cfg.name?.fontSize ?? defaultNameSize;
 
-  const rollX = cfg.roll_no?.x ?? (isDedicatedCoordTemplate ? 731 : 690);
-  const rollY = cfg.roll_no?.y ?? (isDedicatedCoordTemplate ? 332 : 382);
-  const rollSize = cfg.roll_no?.fontSize ?? (isDedicatedCoordTemplate ? 18 : 16);
+  const semX = cfg.semester?.x ?? defaultSemX;
+  const semY = cfg.semester?.y ?? defaultSemY;
+  const semSize = cfg.semester?.fontSize ?? defaultSemSize;
 
-  const eventX = cfg.events?.x ?? 400;
-  const eventY = cfg.events?.y ?? 409;
-  const eventSize = cfg.events?.fontSize ?? 16;
+  const branchX = cfg.branch?.x ?? defaultBranchX;
+  const branchY = cfg.branch?.y ?? defaultBranchY;
+  const branchSize = cfg.branch?.fontSize ?? defaultBranchSize;
+
+  const rollX = cfg.roll_no?.x ?? defaultRollX;
+  const rollY = cfg.roll_no?.y ?? defaultRollY;
+  const rollSize = cfg.roll_no?.fontSize ?? defaultRollSize;
+
+  const posX = cfg.position?.x ?? 210;
+  const posY = cfg.position?.y ?? 409;
+  const posSize = cfg.position?.fontSize ?? 17;
+  const posColor = cfg.position?.color ?? '#7b1113';
+
+  const eventX = cfg.events?.x ?? defaultEventX;
+  const eventY = cfg.events?.y ?? defaultEventY;
+  const eventSize = cfg.events?.fontSize ?? defaultEventSize;
+  const eventColor = cfg.events?.color ?? defaultEventColor;
 
   ctx.textBaseline = 'middle';
 
   // 2. COORDINATOR ADAPTATIONS (ONLY when rendering coordinator on participation template)
-  if (isCoord && !isDedicatedCoordTemplate) {
+  if (isCoord && !isDedicatedCoordTemplate && !isDedicatedApprecTemplate) {
     ctx.fillStyle = '#faf8f5';
     ctx.beginPath();
     ctx.roundRect(320, 285, 384, 26, 4);
@@ -2739,32 +3052,53 @@ async function drawAdminCertificateCanvas(cert) {
   ctx.fillStyle = cfg.semester?.color || '#1a1a2e';
   ctx.fillText(student.semester || 'IV Semester', semX, semY);
 
-  // Branch
-  ctx.font = `bold ${branchSize}px "Plus Jakarta Sans", sans-serif`;
+  // Branch (with auto-scaling for long branch names)
+  const branchText = student.branch || 'CSE';
+  let curBranchSize = branchSize;
+  ctx.font = `bold ${curBranchSize}px "Plus Jakarta Sans", sans-serif`;
+  while (ctx.measureText(branchText).width > 220 && curBranchSize > 11) {
+    curBranchSize--;
+    ctx.font = `bold ${curBranchSize}px "Plus Jakarta Sans", sans-serif`;
+  }
   ctx.fillStyle = cfg.branch?.color || '#1a1a2e';
-  ctx.fillText(student.branch || 'CSE', branchX, branchY);
+  ctx.fillText(branchText, branchX, branchY);
 
   // Roll Number / Coordinator ID
   ctx.font = `bold ${rollSize}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillStyle = cfg.roll_no?.color || '#1a1a2e';
   ctx.fillText(student.roll_no || '-', rollX, rollY);
 
-  // Event & Role display: ONLY on participation template (dedicated coordinator template omits events line)
+  // Appreciation Position Field
+  if (isApprec || isDedicatedApprecTemplate) {
+    const positionText = cert.position || cert.designation || 'Winner';
+    ctx.font = `bold ${posSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillStyle = posColor;
+    ctx.fillText(positionText, posX, posY);
+  }
+
+  // Event & Role display: ONLY on participation and appreciation templates (dedicated coordinator template omits events line)
   if (!isDedicatedCoordTemplate) {
-    ctx.font = `bold ${eventSize}px "Plus Jakarta Sans", sans-serif`;
-    ctx.fillStyle = cfg.events?.color || '#7b1113';
+    let curEventSize = eventSize;
+    ctx.font = `bold ${curEventSize}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillStyle = eventColor;
+    let fullEventText = eventName;
     if (isCoord) {
-      ctx.fillText(`${eventName} (${cert.designation || 'Student Coordinator'})`, eventX, eventY);
-    } else {
-      ctx.fillText(eventName, eventX, eventY);
+      fullEventText = `${eventName} (${cert.designation || 'Student Coordinator'})`;
     }
+    const maxEvtWidth = (isApprec || isDedicatedApprecTemplate) ? 460 : 540;
+    while (ctx.measureText(fullEventText).width > maxEvtWidth && curEventSize > 11) {
+      curEventSize--;
+      ctx.font = `bold ${curEventSize}px "Plus Jakarta Sans", sans-serif`;
+    }
+    ctx.fillText(fullEventText, eventX, eventY);
   }
 
   // 4. Security Verification ID & Issue Date at Bottom
   ctx.font = '10px monospace';
   ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
   ctx.textAlign = 'left';
-  const certIdDisplay = cert.certificateId || `SVEC-${isCoord ? 'COORD' : 'CERT'}-${(student.roll_no || 'REC')}`;
+  const roleCode = isApprec ? 'APPR' : (isCoord ? 'COORD' : 'CERT');
+  const certIdDisplay = cert.certificateId || `SVEC-${roleCode}-${(student.roll_no || 'REC')}`;
   ctx.fillText(`ID: ${certIdDisplay} | Issued: ${cert.issueDate || 'Verified'} | Sri Vasavi Engg College`, 32, canvas.height - 18);
 }
 
@@ -2786,7 +3120,9 @@ function downloadAdminActivePDF() {
 
     const safeRoll = (activeAdminPreviewCert.student?.roll_no || 'Roll').replace(/[^a-zA-Z0-9]/g, '_');
     const safeName = (activeAdminPreviewCert.student?.name || 'Recipient').replace(/[^a-zA-Z0-9]/g, '_');
-    const roleTag = activeAdminPreviewCert.isCoordinator ? 'Coordinator' : 'Participant';
+    const isCoord = activeAdminPreviewCert.isCoordinator || (activeAdminPreviewCert.role || '').toLowerCase().includes('coordinator') || activeAdminPreviewCert.certificateType === 'Coordination';
+    const isApprec = activeAdminPreviewCert.isAppreciation || activeAdminPreviewCert.certificateType === 'Appreciation' || Boolean(activeAdminPreviewCert.position) || (activeAdminPreviewCert.role || '').toLowerCase().includes('winner');
+    const roleTag = isApprec ? 'Appreciation' : (isCoord ? 'Coordinator' : 'Participant');
     const filename = `${safeRoll}_${safeName}_${roleTag}_Certificate.pdf`;
 
     doc.save(filename);
@@ -2804,7 +3140,9 @@ function downloadAdminActivePNG() {
 
   const safeRoll = (activeAdminPreviewCert.student?.roll_no || 'Roll').replace(/[^a-zA-Z0-9]/g, '_');
   const safeName = (activeAdminPreviewCert.student?.name || 'Recipient').replace(/[^a-zA-Z0-9]/g, '_');
-  const roleTag = activeAdminPreviewCert.isCoordinator ? 'Coordinator' : 'Participant';
+  const isCoord = activeAdminPreviewCert.isCoordinator || (activeAdminPreviewCert.role || '').toLowerCase().includes('coordinator') || activeAdminPreviewCert.certificateType === 'Coordination';
+  const isApprec = activeAdminPreviewCert.isAppreciation || activeAdminPreviewCert.certificateType === 'Appreciation' || Boolean(activeAdminPreviewCert.position) || (activeAdminPreviewCert.role || '').toLowerCase().includes('winner');
+  const roleTag = isApprec ? 'Appreciation' : (isCoord ? 'Coordinator' : 'Participant');
   const filename = `${safeRoll}_${safeName}_${roleTag}_Certificate.png`;
 
   const link = document.createElement('a');

@@ -112,20 +112,43 @@ function displayStudentResults(data) {
       </div>
     `;
   } else {
-    // 1. Render individual certificates for each event (distinguishing Students vs Coordinators)
+    // 1. Render individual certificates for each event (distinguishing Students, Coordinators, and Appreciation / Winners)
     const cardsHtml = events.map(e => {
-      const isCoord = e.isCoordinator || (e.role || '').toLowerCase().includes('coordinator');
-      const cardBorder = isCoord ? 'border: 1px solid #fed7aa; background: linear-gradient(180deg, #ffffff 0%, #fffaf0 100%);' : '';
-      const badgeHtml = isCoord
-        ? `<span class="badge badge-warning" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⭐ ${escapeHtml(e.designation || 'Coordinator')}</span>
-           <span class="badge badge-primary">📜 Certificate of Appreciation</span>`
-        : `<span class="badge badge-success">✓ Verified Participation</span>
-           <span class="badge badge-primary">📜 Certificate of Participation</span>`;
+      const isCoord = e.isCoordinator || (e.role || '').toLowerCase().includes('coordinator') || e.certificateType === 'Coordination';
+      const isApprec = e.isAppreciation || e.certificateType === 'Appreciation' || Boolean(e.position) || (e.role || '').toLowerCase().includes('winner');
 
-      const titlePrefix = isCoord ? '⭐ Event Coordinator Certificate' : '🎓 Certificate of Participation';
-      const descText = isCoord
-        ? `Official institutional certificate honoring active contribution as <strong>${escapeHtml(e.designation || 'Student Coordinator')}</strong> for <strong>${escapeHtml(e.eventName)}</strong>.`
-        : `Official institutional certificate certifying active participation in <strong>${escapeHtml(e.eventName)}</strong>.`;
+      let cardBorder = '';
+      let badgeHtml = '';
+      let titlePrefix = '';
+      let descText = '';
+      let titleColor = 'var(--primary)';
+
+      if (isApprec) {
+        cardBorder = 'border: 1px solid #fcd34d; background: linear-gradient(180deg, #ffffff 0%, #fffdf5 100%);';
+        titleColor = '#7b1113';
+        badgeHtml = `
+          <span class="badge badge-warning" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">🏆 ${escapeHtml(e.position || 'Position Winner')}</span>
+          <span class="badge badge-primary" style="background: #7b1113; color: #fff;">🏅 Certificate of Appreciation</span>
+        `;
+        titlePrefix = '🏅 Certificate of Appreciation';
+        descText = `Official institutional certificate honoring excellence for winning <strong>${escapeHtml(e.position || 'Position')}</strong> in <strong>${escapeHtml(e.eventName)}</strong>.`;
+      } else if (isCoord) {
+        cardBorder = 'border: 1px solid #fed7aa; background: linear-gradient(180deg, #ffffff 0%, #fffaf0 100%);';
+        titleColor = '#92400e';
+        badgeHtml = `
+          <span class="badge badge-warning" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⭐ ${escapeHtml(e.designation || 'Coordinator')}</span>
+          <span class="badge badge-primary">📜 Coordinator Certificate</span>
+        `;
+        titlePrefix = '⭐ Event Coordinator Certificate';
+        descText = `Official institutional certificate honoring active contribution as <strong>${escapeHtml(e.designation || 'Student Coordinator')}</strong> for <strong>${escapeHtml(e.eventName)}</strong>.`;
+      } else {
+        badgeHtml = `
+          <span class="badge badge-success">✓ Verified Participation</span>
+          <span class="badge badge-primary">📜 Certificate of Participation</span>
+        `;
+        titlePrefix = '🎓 Certificate of Participation';
+        descText = `Official institutional certificate certifying active participation in <strong>${escapeHtml(e.eventName)}</strong>.`;
+      }
 
       const eventDateText = e.eventDate && e.eventDate !== 'N/A' ? ` • Event Date: ${escapeHtml(e.eventDate)}` : '';
 
@@ -135,7 +158,7 @@ function displayStudentResults(data) {
             <div class="multi-cert-badge-row">
               ${badgeHtml}
             </div>
-            <h3 class="multi-cert-title" style="color: ${isCoord ? '#92400e' : 'var(--primary)'};">
+            <h3 class="multi-cert-title" style="color: ${titleColor};">
               ${titlePrefix}: ${escapeHtml(e.eventName)}
             </h3>
             <p class="multi-cert-desc">
@@ -217,7 +240,13 @@ async function previewSingleCertificate(eventId, eventName) {
     await renderCertificateCanvas(data.certificate, eventName);
 
     const isCoord = data.certificate.isCoordinator;
-    const modalTitle = isCoord ? `Coordinator Certificate: ${eventName}` : `Participation Certificate: ${eventName}`;
+    const isApprec = data.certificate.isAppreciation;
+    let modalTitle = `Participation Certificate: ${eventName}`;
+    if (isApprec) {
+      modalTitle = `Certificate of Appreciation: ${eventName} (${data.certificate.position || 'Winner'})`;
+    } else if (isCoord) {
+      modalTitle = `Coordinator Certificate: ${eventName}`;
+    }
     openModal(modalTitle, `${data.certificate.student.name} (${data.certificate.student.roll_no}) • Official Institutional Certificate`);
   } catch (err) {
     showToast('Failed to render certificate: ' + err.message, 'error');
@@ -353,19 +382,32 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
   // 1. Draw base certificate image
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator');
+  const isCoord = cert.isCoordinator || (cert.role || '').toLowerCase().includes('coordinator') || cert.certificateType === 'Coordination';
+  const isApprec = cert.isAppreciation || cert.certificateType === 'Appreciation' || Boolean(cert.position) || (cert.role || '').toLowerCase().includes('winner');
   const isDedicatedCoordTemplate = (template.type === 'coordination');
+  const isDedicatedApprecTemplate = (template.type === 'appreciation');
 
-  // Helper to render text with styling
-  function drawFieldText(text, fieldCfg, defaultFont) {
+  // Helper to render text with styling and dynamic font scaling
+  function drawFieldText(text, fieldCfg, defaultFont, maxPixelWidth = 0) {
     if (!text || !fieldCfg) return;
-    const fontSize = fieldCfg.fontSize || 18;
+    let fontSize = fieldCfg.fontSize || 18;
     const fontFamily = fieldCfg.fontFamily || defaultFont || 'sans-serif';
     const fontWeight = fieldCfg.fontWeight || 'normal';
     const color = fieldCfg.color || '#1a1a2e';
     const align = fieldCfg.align || 'left';
 
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+
+    // Auto-fit if string exceeds max width
+    if (maxPixelWidth > 0) {
+      let measured = ctx.measureText(text).width;
+      while (measured > maxPixelWidth && fontSize > 10) {
+        fontSize -= 1;
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        measured = ctx.measureText(text).width;
+      }
+    }
+
     ctx.fillStyle = color;
     ctx.textAlign = align;
     ctx.textBaseline = 'middle';
@@ -374,8 +416,8 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
   }
 
   // 2. COORDINATOR ADAPTATIONS (Legacy participation template fallback only)
-  // If template is dedicated coordination template, the background already has proper wording.
-  if (isCoord && !isDedicatedCoordTemplate) {
+  // If template is dedicated coordination or appreciation template, the background already has proper wording.
+  if (isCoord && !isDedicatedCoordTemplate && !isDedicatedApprecTemplate) {
     // 2a. Gracefully overlay "OF PARTICIPATION" with "OF APPRECIATION"
     ctx.fillStyle = '#faf8f5';
     ctx.beginPath();
@@ -413,29 +455,38 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
   }
 
   // 3. Render dynamic fields
-  // Student / Coordinator Name
-  drawFieldText(cert.student.name, cfg.name, 'Playfair Display, serif');
+  // Student / Winner / Coordinator Name
+  drawFieldText(cert.student.name, cfg.name, 'Playfair Display, serif', 580);
 
   // Semester
-  drawFieldText(cert.student.semester, cfg.semester, 'Plus Jakarta Sans, sans-serif');
+  drawFieldText(cert.student.semester, cfg.semester, 'Plus Jakarta Sans, sans-serif', 120);
 
-  // Branch
-  drawFieldText(cert.student.branch, cfg.branch, 'Plus Jakarta Sans, sans-serif');
+  // Branch (auto-scales if long branch name like Artificial Intelligence & Machine Learning)
+  drawFieldText(cert.student.branch, cfg.branch, 'Plus Jakarta Sans, sans-serif', 160);
 
   // Roll Number
-  drawFieldText(cert.student.roll_no, cfg.roll_no, 'Plus Jakarta Sans, sans-serif');
+  drawFieldText(cert.student.roll_no, cfg.roll_no, 'Plus Jakarta Sans, sans-serif', 230);
 
-  // Event name(s) and role - only on participation templates (omitted for dedicated coordinator templates)
+  // Appreciation Position Field
+  if (isDedicatedApprecTemplate || isApprec) {
+    const positionText = cert.position || cert.designation || 'Winner';
+    if (cfg.position) {
+      drawFieldText(positionText, cfg.position, 'Plus Jakarta Sans, sans-serif', 130);
+    }
+  }
+
+  // Event name(s) - on participation and appreciation templates (omitted for dedicated coordinator templates)
   if (!isDedicatedCoordTemplate) {
     let eventText = eventDisplayString || (cert.event ? cert.event.name : '');
     if (isCoord && !eventText.includes('Coordinator')) {
       eventText = `${eventText} (${cert.designation || 'Student Coordinator'})`;
     }
-    drawFieldText(eventText, cfg.events, 'Plus Jakarta Sans, sans-serif');
+    const maxEvtW = isDedicatedApprecTemplate ? 450 : 540;
+    drawFieldText(eventText, cfg.events, 'Plus Jakarta Sans, sans-serif', maxEvtW);
   }
 
-  // Coordinator Designation field if template provides designated coordinates (and not dedicated coordinator template)
-  if (isCoord && !isDedicatedCoordTemplate && cfg.designation) {
+  // Coordinator Designation field if template provides designated coordinates
+  if (isCoord && !isDedicatedCoordTemplate && !isDedicatedApprecTemplate && cfg.designation) {
     const desigDisplay = cert.designation || 'Student Coordinator';
     drawFieldText(desigDisplay, cfg.designation, 'Plus Jakarta Sans, sans-serif');
   }

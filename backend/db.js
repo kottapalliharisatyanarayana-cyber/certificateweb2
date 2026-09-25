@@ -283,12 +283,76 @@ const seedDefaults = async () => {
         }
       });
       console.log('⭐ Default Coordination template seeded (clean institutional format)!');
-    } else {
-      // Ensure existing coordination templates have events & designation removed
-      await Template.updateMany(
-        { template_type: 'coordination' },
-        { $unset: { 'fields_config.events': '', 'fields_config.designation': '' } }
-      );
+    }
+
+    // 4. Seed Default Appreciation Template if none exists
+    let appreciationTemplate = await Template.findOne({ template_type: 'appreciation' });
+    if (!appreciationTemplate) {
+      appreciationTemplate = await Template.create({
+        template_name: 'Sri Vasavi Engineering College (Certificate of Appreciation - Nexus 2K26)',
+        template_file: '/templates/svec_appreciation_template.jpg',
+        template_type: 'appreciation',
+        is_active: true,
+        fields_config: {
+          canvas_width: 1024,
+          canvas_height: 682,
+          name: {
+            x: 350,
+            y: 334,
+            fontSize: 20,
+            fontFamily: 'Playfair Display, serif',
+            fontWeight: 'bold',
+            color: '#1a1a2e',
+            align: 'left'
+          },
+          semester: {
+            x: 140,
+            y: 362,
+            fontSize: 16,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 'bold',
+            color: '#1a1a2e',
+            align: 'center'
+          },
+          branch: {
+            x: 430,
+            y: 362,
+            fontSize: 14,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 'bold',
+            color: '#1a1a2e',
+            align: 'center'
+          },
+          roll_no: {
+            x: 740,
+            y: 362,
+            fontSize: 16,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 'bold',
+            color: '#1a1a2e',
+            align: 'left'
+          },
+          position: {
+            x: 240,
+            y: 393,
+            fontSize: 16,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 'bold',
+            color: '#7b1113',
+            align: 'center'
+          },
+          events: {
+            x: 500,
+            y: 393,
+            fontSize: 15,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 'bold',
+            color: '#1a1a2e',
+            align: 'left'
+          }
+        }
+      });
+      console.log('🏅 Default Appreciation template seeded (Nexus 2K26 format)!');
     }
   } catch (err) {
     console.error('Error seeding defaults:', err.message);

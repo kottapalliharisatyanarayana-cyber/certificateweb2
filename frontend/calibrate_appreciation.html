@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Appreciation Certificate Alignment Calibrator</title>
+  <style>
+    body { font-family: sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 20px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    canvas { border: 2px solid #38bdf8; display: block; margin: 10px auto; background: #fff; max-width: 100%; height: auto; }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; background: #1e293b; padding: 15px; border-radius: 8px; margin-top: 15px; }
+    .group { background: #334155; padding: 10px; border-radius: 6px; }
+    .group label { font-size: 12px; font-weight: bold; color: #38bdf8; display: block; margin-bottom: 5px; }
+    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 5px; }
+    .row span { font-size: 11px; width: 40px; }
+    .row input { width: 60px; padding: 4px; background: #0f172a; color: #fff; border: 1px solid #475569; border-radius: 4px; }
+    button { background: #38bdf8; color: #0f172a; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #7dd3fc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Certificate of Appreciation - Live Coordinate Calibrator (1024 x 682)</h2>
+    <canvas id="certCanvas" width="1024" height="682"></canvas>
+
+    <div class="controls">
+      <div class="group">
+        <label>Name (Mr./Ms.)</label>
+        <div class="row"><span>X:</span><input type="number" id="nameX" value="340"></div>
+        <div class="row"><span>Y:</span><input type="number" id="nameY" value="355"></div>
+        <div class="row"><span>Size:</span><input type="number" id="nameSize" value="20"></div>
+      </div>
+
+      <div class="group">
+        <label>Semester</label>
+        <div class="row"><span>X:</span><input type="number" id="semX" value="125"></div>
+        <div class="row"><span>Y:</span><input type="number" id="semY" value="382"></div>
+        <div class="row"><span>Size:</span><input type="number" id="semSize" value="16"></div>
+      </div>
+
+      <div class="group">
+        <label>Branch</label>
+        <div class="row"><span>X:</span><input type="number" id="branchX" value="360"></div>
+        <div class="row"><span>Y:</span><input type="number" id="branchY" value="382"></div>
+        <div class="row"><span>Size:</span><input type="number" id="branchSize" value="16"></div>
+      </div>
+
+      <div class="group">
+        <label>Reg. No.</label>
+        <div class="row"><span>X:</span><input type="number" id="rollX" value="690"></div>
+        <div class="row"><span>Y:</span><input type="number" id="rollY" value="382"></div>
+        <div class="row"><span>Size:</span><input type="number" id="rollSize" value="16"></div>
+      </div>
+
+      <div class="group">
+        <label>Position (e.g. 1st / Winner)</label>
+        <div class="row"><span>X:</span><input type="number" id="posX" value="210"></div>
+        <div class="row"><span>Y:</span><input type="number" id="posY" value="409"></div>
+        <div class="row"><span>Size:</span><input type="number" id="posSize" value="17"></div>
+      </div>
+
+      <div class="group">
+        <label>Event Name</label>
+        <div class="row"><span>X:</span><input type="number" id="evtX" value="500"></div>
+        <div class="row"><span>Y:</span><input type="number" id="evtY" value="409"></div>
+        <div class="row"><span>Size:</span><input type="number" id="evtSize" value="16"></div>
+      </div>
+    </div>
+    <div style="margin-top: 10px; text-align: center;">
+      <button onclick="logConfig()">Copy Config to Console</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('certCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = '/templates/svec_appreciation_template.jpg';
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const nameX = parseInt(document.getElementById('nameX').value);
+      const nameY = parseInt(document.getElementById('nameY').value);
+      const nameSize = parseInt(document.getElementById('nameSize').value);
+
+      const semX = parseInt(document.getElementById('semX').value);
+      const semY = parseInt(document.getElementById('semY').value);
+      const semSize = parseInt(document.getElementById('semSize').value);
+
+      const branchX = parseInt(document.getElementById('branchX').value);
+      const branchY = parseInt(document.getElementById('branchY').value);
+      const branchSize = parseInt(document.getElementById('branchSize').value);
+
+      const rollX = parseInt(document.getElementById('rollX').value);
+      const rollY = parseInt(document.getElementById('rollY').value);
+      const rollSize = parseInt(document.getElementById('rollSize').value);
+
+      const posX = parseInt(document.getElementById('posX').value);
+      const posY = parseInt(document.getElementById('posY').value);
+      const posSize = parseInt(document.getElementById('posSize').value);
+
+      const evtX = parseInt(document.getElementById('evtX').value);
+      const evtY = parseInt(document.getElementById('evtY').value);
+      const evtSize = parseInt(document.getElementById('evtSize').value);
+
+      // Draw Name
+      ctx.font = `bold ${nameSize}px "Playfair Display", Georgia, serif`;
+      ctx.fillStyle = '#1a1a2e';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('K. HARI SATYANARAYANA', nameX, nameY);
+
+      // Draw Semester
+      ctx.font = `bold ${semSize}px "Inter", "Plus Jakarta Sans", sans-serif`;
+      ctx.fillText('IV', semX, semY);
+
+      // Draw Branch
+      ctx.fillText('ARTIFICIAL INTELLIGENCE & ML', branchX, branchY);
+
+      // Draw Roll No
+      ctx.fillText('21A81A4201', rollX, rollY);
+
+      // Draw Position
+      ctx.fillStyle = '#7b1113';
+      ctx.font = `bold ${posSize}px "Inter", "Plus Jakarta Sans", sans-serif`;
+      ctx.fillText('1st / First', posX, posY);
+
+      // Draw Event
+      ctx.fillStyle = '#1a1a2e';
+      ctx.font = `bold ${evtSize}px "Inter", "Plus Jakarta Sans", sans-serif`;
+      ctx.fillText('CODING CONTEST / PAPER PRESENTATION', evtX, evtY);
+    }
+
+    img.onload = () => {
+      draw();
+    };
+
+    document.querySelectorAll('input').forEach(inp => inp.addEventListener('input', draw));
+
+    function logConfig() {
+      const cfg = {
+        canvas_width: 1024,
+        canvas_height: 682,
+        name: { x: parseInt(document.getElementById('nameX').value), y: parseInt(document.getElementById('nameY').value), fontSize: parseInt(document.getElementById('nameSize').value), fontFamily: 'Playfair Display, serif', fontWeight: 'bold', color: '#1a1a2e', align: 'left' },
+        semester: { x: parseInt(document.getElementById('semX').value), y: parseInt(document.getElementById('semY').value), fontSize: parseInt(document.getElementById('semSize').value), fontFamily: 'Inter, sans-serif', fontWeight: 'bold', color: '#1a1a2e', align: 'left' },
+        branch: { x: parseInt(document.getElementById('branchX').value), y: parseInt(document.getElementById('branchY').value), fontSize: parseInt(document.getElementById('branchSize').value), fontFamily: 'Inter, sans-serif', fontWeight: 'bold', color: '#1a1a2e', align: 'left' },
+        roll_no: { x: parseInt(document.getElementById('rollX').value), y: parseInt(document.getElementById('rollY').value), fontSize: parseInt(document.getElementById('rollSize').value), fontFamily: 'Inter, sans-serif', fontWeight: 'bold', color: '#1a1a2e', align: 'left' },
+        position: { x: parseInt(document.getElementById('posX').value), y: parseInt(document.getElementById('posY').value), fontSize: parseInt(document.getElementById('posSize').value), fontFamily: 'Inter, sans-serif', fontWeight: 'bold', color: '#7b1113', align: 'left' },
+        events: { x: parseInt(document.getElementById('evtX').value), y: parseInt(document.getElementById('evtY').value), fontSize: parseInt(document.getElementById('evtSize').value), fontFamily: 'Inter, sans-serif', fontWeight: 'bold', color: '#1a1a2e', align: 'left' }
+      };
+      console.log(JSON.stringify(cfg, null, 2));
+    }
+  </script>
+</body>
+</html>

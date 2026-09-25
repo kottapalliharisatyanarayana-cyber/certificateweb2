@@ -77,7 +77,7 @@ app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Static asset folders (for local development)
 if (!process.env.VERCEL) {
-  app.use(express.static(path.join(__dirname, '../public')));
+  app.use(express.static(path.join(__dirname, '../frontend')));
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 }
 
@@ -147,14 +147,16 @@ app.get(['/api/health', '/health'], (req, res) => {
 // Admin System Statistics Endpoint
 app.get(['/api/stats', '/stats'], async (req, res) => {
   try {
-    const [totalStudents, totalEvents, totalParticipations, activePartTemplate, activeCoordTemplate] = await Promise.all([
+    const [totalStudents, totalEvents, totalParticipations, activePartTemplate, activeCoordTemplate, activeApprecTemplate] = await Promise.all([
       Student.countDocuments(),
       Event.countDocuments(),
       Participation.countDocuments({ participated: true }),
       Template.findOne({ template_type: 'participation', is_active: true }).select('template_name template_file')
         .then(t => t || Template.findOne({ is_active: true }).select('template_name template_file')),
       Template.findOne({ template_type: 'coordination', is_active: true }).select('template_name template_file')
-        .then(t => t || Template.findOne({ template_type: 'coordination' }).select('template_name template_file'))
+        .then(t => t || Template.findOne({ template_type: 'coordination' }).select('template_name template_file')),
+      Template.findOne({ template_type: 'appreciation', is_active: true }).select('template_name template_file')
+        .then(t => t || Template.findOne({ template_type: 'appreciation' }).select('template_name template_file'))
     ]);
 
     const dbStatus = getStatus();
@@ -167,6 +169,7 @@ app.get(['/api/stats', '/stats'], async (req, res) => {
         totalParticipations,
         activeTemplate: activePartTemplate ? activePartTemplate.template_name : 'Sri Vasavi College (Participation)',
         activeCoordTemplate: activeCoordTemplate ? activeCoordTemplate.template_name : 'Certificate of Coordination',
+        activeApprecTemplate: activeApprecTemplate ? activeApprecTemplate.template_name : 'Certificate of Appreciation',
         dbMode: dbStatus.mode,
         dbConnected: dbStatus.connected
       }
@@ -177,6 +180,11 @@ app.get(['/api/stats', '/stats'], async (req, res) => {
       message: 'Failed to retrieve system statistics: ' + err.message
     });
   }
+});
+
+// Sample file download aliases
+app.get(['/api/sample/appreciation-excel', '/sample/appreciation-excel'], (req, res) => {
+  res.redirect('/api/upload/sample-appreciation-excel');
 });
 
 // Mount API Routes (supports both /api/route and /route for Vercel rewrites)
@@ -190,7 +198,7 @@ app.use(['/api/certificates', '/certificates'], certificateRoutes);
 if (!process.env.VERCEL) {
   // Admin portal route alias (Local development)
   app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/admin.html'));
+    res.sendFile(path.join(__dirname, '../frontend/admin.html'));
   });
 
   // SPA fallback for student portal (Local development)
@@ -198,7 +206,7 @@ if (!process.env.VERCEL) {
     if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
       return next();
     }
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
   });
 }
 

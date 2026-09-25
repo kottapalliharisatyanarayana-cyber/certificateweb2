@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: certificateweb2
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        value: super_secret_certificate_jwt_key_2026
+      - key: MONGODB_URI
+        sync: false

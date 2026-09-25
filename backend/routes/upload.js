@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { parseExcelBuffer } = require('../utils/excelParser');
-const { generateSampleExcel, generateSampleCoordinatorsExcel } = require('../utils/sampleGenerator');
+const { generateSampleExcel, generateSampleCoordinatorsExcel, generateSampleAppreciationExcel } = require('../utils/sampleGenerator');
 const { parsePdfBuffer } = require('../utils/pdfParser');
 const { generateSamplePdf } = require('../utils/samplePdfGenerator');
 const Student = require('../models/Student');
@@ -25,6 +25,19 @@ router.get('/sample-excel', (req, res) => {
   } catch (err) {
     console.error('Error generating sample Excel:', err);
     res.status(500).json({ success: false, message: 'Failed to generate sample Excel file: ' + err.message });
+  }
+});
+
+// GET /api/upload/sample-appreciation-excel (Download sample Excel file for winners / appreciation)
+router.get(['/sample-appreciation-excel', '/sample/appreciation-excel'], (req, res) => {
+  try {
+    const buffer = generateSampleAppreciationExcel();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="sample_appreciation_template.xlsx"');
+    res.send(buffer);
+  } catch (err) {
+    console.error('Error generating sample Appreciation Excel:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate sample Appreciation Excel file: ' + err.message });
   }
 });
 
@@ -119,15 +132,38 @@ router.post('/excel', authMiddleware, upload.single('file'), async (req, res) =>
       }
 
       // Link participations
-      const isCoordinatorImport = (req.body.import_role || '').toLowerCase().includes('coordinator');
+      const importRole = (req.body.import_role || '').toLowerCase();
+      const isCoordinatorImport = importRole.includes('coordinator');
+      const isAppreciationImport = importRole.includes('appreciation') || importRole.includes('winner');
+
       for (const evtName of record.events) {
         const eventId = eventMap[evtName];
         if (eventId) {
+          const detectedPos = (record.eventPositions && record.eventPositions[evtName]) || record.position || '';
+          const isWinner = isAppreciationImport || Boolean(detectedPos);
+
+          let role = 'Participant';
+          let certType = 'Participation';
+          let designation = 'Participant';
+          let positionVal = '';
+
+          if (isWinner) {
+            role = 'Winner';
+            certType = 'Appreciation';
+            positionVal = detectedPos || 'Winner';
+            designation = positionVal;
+          } else if (isCoordinatorImport) {
+            role = 'Coordinator';
+            certType = 'Coordination';
+            designation = 'Student Coordinator';
+          }
+
           const updatePayload = {
             participated: true,
-            role: isCoordinatorImport ? 'Coordinator' : 'Participant',
-            designation: isCoordinatorImport ? 'Student Coordinator' : 'Participant',
-            certificate_type: isCoordinatorImport ? 'Coordination' : 'Participation'
+            role,
+            designation,
+            certificate_type: certType,
+            position: positionVal
           };
 
           const resPart = await Participation.findOneAndUpdate(

@@ -142,8 +142,76 @@ const generateSampleCoordinatorsExcel = () => {
   return xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
 };
 
+const generateSampleAppreciationExcel = () => {
+  const data = [
+    {
+      'Roll No': '21A81A4201',
+      'Name': 'K. Hari Satyanarayana',
+      'Branch': 'CSE (AIML)',
+      'Semester': 'IV',
+      'Position': '1st Prize',
+      'Event': 'Coding Contest (Nexus 2K26)',
+      'Email': 'hari.k@example.com'
+    },
+    {
+      'Roll No': '21A81A4202',
+      'Name': 'B. Sai Sneha',
+      'Branch': 'CSE',
+      'Semester': 'IV',
+      'Position': '2nd Prize',
+      'Event': 'Coding Contest (Nexus 2K26)',
+      'Email': 'sai.sneha@example.com'
+    },
+    {
+      'Roll No': '21A81A4203',
+      'Name': 'V. Tarun Kumar',
+      'Branch': 'AIML',
+      'Semester': 'VI',
+      'Position': '1st Position',
+      'Event': 'Paper Presentation (Nexus 2K26)',
+      'Email': 'tarun.v@example.com'
+    },
+    {
+      'Roll No': '21A81A4204',
+      'Name': 'P. Likitha Reddy',
+      'Branch': 'IT',
+      'Semester': 'IV',
+      'Position': 'Winner',
+      'Event': 'Web Design Challenge (Nexus 2K26)',
+      'Email': 'likitha.p@example.com'
+    },
+    {
+      'Roll No': '21A81A4205',
+      'Name': 'G. Akhil Chandra',
+      'Branch': 'ECE',
+      'Semester': 'IV',
+      'Position': 'Runner-Up',
+      'Event': 'Web Design Challenge (Nexus 2K26)',
+      'Email': 'akhil.g@example.com'
+    }
+  ];
+
+  const ws = xlsx.utils.json_to_sheet(data);
+
+  ws['!cols'] = [
+    { wch: 15 }, // Roll No
+    { wch: 24 }, // Name
+    { wch: 16 }, // Branch
+    { wch: 12 }, // Semester
+    { wch: 16 }, // Position
+    { wch: 34 }, // Event
+    { wch: 26 }  // Email
+  ];
+
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, 'Winners_Appreciation');
+
+  return xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+};
+
 module.exports = {
   generateSampleExcel,
-  generateSampleCoordinatorsExcel
+  generateSampleCoordinatorsExcel,
+  generateSampleAppreciationExcel
 };
 

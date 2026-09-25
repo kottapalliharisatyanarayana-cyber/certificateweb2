@@ -23,7 +23,7 @@ const TemplateSchema = new mongoose.Schema({
   },
   template_type: {
     type: String,
-    enum: ['participation', 'coordination', 'general'],
+    enum: ['participation', 'coordination', 'appreciation', 'general'],
     default: 'participation',
     index: true
   },

@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard | Certificate Management System</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
 </head>
+
 <body>
 
   <!-- NAVBAR -->
@@ -22,8 +25,10 @@
       <div class="nav-links">
         <span id="dbStatusBadge" class="badge badge-success" style="display: none;">● DB Connected</span>
         <a href="/" class="nav-btn nav-btn-ghost">🎓 Student View</a>
-        <button id="securityNavBtn" class="nav-btn nav-btn-ghost" style="display: none;" onclick="switchTab('credentials')">🔑 Admin Security</button>
-        <button id="logoutBtn" class="nav-btn nav-btn-ghost" style="display: none;" onclick="handleLogout()">🚪 Logout</button>
+        <button id="securityNavBtn" class="nav-btn nav-btn-ghost" style="display: none;"
+          onclick="switchTab('credentials')">🔑 Admin Security</button>
+        <button id="logoutBtn" class="nav-btn nav-btn-ghost" style="display: none;" onclick="handleLogout()">🚪
+          Logout</button>
       </div>
     </div>
   </nav>
@@ -40,16 +45,20 @@
       <form onsubmit="handleLogin(event)">
         <div class="form-group">
           <label class="form-label" for="username">Username</label>
-          <input type="text" id="username" class="form-control" placeholder="Enter username" required autofocus autocomplete="username">
+          <input type="text" id="username" class="form-control" placeholder="Enter username" required autofocus
+            autocomplete="username">
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
           <div class="password-input-group">
-            <input type="password" id="password" class="form-control" placeholder="Enter password" required autocomplete="current-password">
-            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="Toggle password visibility">👁️</button>
+            <input type="password" id="password" class="form-control" placeholder="Enter password" required
+              autocomplete="current-password">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)"
+              title="Toggle password visibility">👁️</button>
           </div>
         </div>
-        <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-block" style="padding: 0.8rem; font-weight: 700; margin-top: 1rem;">
+        <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-block"
+          style="padding: 0.8rem; font-weight: 700; margin-top: 1rem;">
           Sign In to Dashboard
         </button>
       </form>
@@ -73,18 +82,32 @@
         <li><a class="sidebar-link" onclick="switchTab('credentials')">🔑 Admin Security</a></li>
       </ul>
 
-      <div style="margin-top: 2rem; padding: 0.85rem; background: rgba(255,255,255,0.06); border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.08);">
+      <div
+        style="margin-top: 2rem; padding: 0.85rem; background: rgba(255,255,255,0.06); border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.08);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
-          <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">ACTIVE TEMPLATES</span>
-          <span style="font-size: 0.65rem; background: rgba(255,255,255,0.12); color: #cbd5e1; padding: 0.12rem 0.35rem; border-radius: 4px;">Manual</span>
+          <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">ACTIVE
+            TEMPLATES</span>
+          <span
+            style="font-size: 0.65rem; background: rgba(255,255,255,0.12); color: #cbd5e1; padding: 0.12rem 0.35rem; border-radius: 4px;">Manual</span>
         </div>
         <div style="margin-bottom: 0.5rem;">
-          <span style="font-size: 0.68rem; color: #60a5fa; display: block; font-weight: 600;">🎓 Student (Participation)</span>
-          <p id="sidebarActiveTemplate" style="font-size: 0.8rem; color: #fff; font-weight: 700; margin: 0.15rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Active Participation Template">Sri Vasavi College</p>
+          <span style="font-size: 0.68rem; color: #60a5fa; display: block; font-weight: 600;">🎓 Student
+            (Participation)</span>
+          <p id="sidebarActiveTemplate"
+            style="font-size: 0.8rem; color: #fff; font-weight: 700; margin: 0.15rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+            title="Active Participation Template">Sri Vasavi College</p>
         </div>
         <div>
           <span style="font-size: 0.68rem; color: #f59e0b; display: block; font-weight: 600;">⭐ Event Coordinator</span>
-          <p id="sidebarActiveCoordTemplate" style="font-size: 0.8rem; color: #fef08a; font-weight: 700; margin: 0.15rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Active Coordinator Template">Certificate of Coordination</p>
+          <p id="sidebarActiveCoordTemplate"
+            style="font-size: 0.8rem; color: #fef08a; font-weight: 700; margin: 0.15rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+            title="Active Coordinator Template">Certificate of Coordination</p>
+        </div>
+        <div style="margin-top: 0.5rem;">
+          <span style="font-size: 0.68rem; color: #10b981; display: block; font-weight: 600;">🏅 Appreciation / Winners</span>
+          <p id="sidebarActiveApprecTemplate"
+            style="font-size: 0.8rem; color: #6ee7b7; font-weight: 700; margin: 0.15rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+            title="Active Appreciation Template">Certificate of Appreciation</p>
         </div>
       </div>
     </aside>
@@ -97,7 +120,8 @@
         <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
           <div>
             <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">System Overview</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Real-time statistics and certificate generation engine status</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Real-time statistics and certificate generation
+              engine status</p>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="loadStats()">🔄 Refresh</button>
         </div>
@@ -137,7 +161,8 @@
         <!-- QUICK ACTION CARDS -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
           <div class="card">
-            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">📥 Upload Participant Files</h3>
+            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">📥 Upload
+              Participant Files</h3>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
               Upload spreadsheets (.xlsx / .xls) or participant PDF attendance lists with automatic extraction.
             </p>
@@ -145,7 +170,8 @@
           </div>
 
           <div class="card">
-            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">✍️ Manual Participant Entry</h3>
+            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">✍️ Manual
+              Participant Entry</h3>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
               Quickly register individual students, select events, or edit existing records.
             </p>
@@ -153,26 +179,32 @@
           </div>
 
           <div class="card">
-            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">🎨 Certificate Studio</h3>
+            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">🎨 Certificate
+              Studio</h3>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
               Interactively adjust coordinates, typography, and font colors on the certificate canvas.
             </p>
             <button class="btn btn-secondary btn-sm" onclick="switchTab('template')">Open Template Studio ➔</button>
           </div>
 
-          <div class="card" style="border: 1px solid rgba(59, 130, 246, 0.35); background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%);">
+          <div class="card"
+            style="border: 1px solid rgba(59, 130, 246, 0.35); background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%);">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-              <h3 style="font-family: var(--font-display); font-size: 1.15rem; color: var(--primary);">📜 Event Certificates</h3>
+              <h3 style="font-family: var(--font-display); font-size: 1.15rem; color: var(--primary);">📜 Event
+                Certificates</h3>
               <span class="badge badge-primary" style="font-size: 0.75rem;">Students & Coordinators</span>
             </div>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
-              Issue certificates for separate events using the main template. No upload needed! Full support for students and coordinators.
+              Issue certificates for separate events using the main template. No upload needed! Full support for
+              students and coordinators.
             </p>
-            <button class="btn btn-primary btn-sm" onclick="switchTab('event-certs')">Issue Event Certificates ➔</button>
+            <button class="btn btn-primary btn-sm" onclick="switchTab('event-certs')">Issue Event Certificates
+              ➔</button>
           </div>
 
           <div class="card">
-            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">🔑 Admin Security</h3>
+            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.5rem;">🔑 Admin Security
+            </h3>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
               Update administrator username or password credentials securely.
             </p>
@@ -185,15 +217,23 @@
       <section id="tab-upload" style="display: none;">
         <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
           <div>
-            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Upload Participant Data (Excel / PDF)</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Automated participant extraction from spreadsheets (.xlsx) and PDF documents (.pdf)</p>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Upload Participant Data
+              (Excel / PDF)</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Automated participant extraction from spreadsheets
+              (.xlsx) and PDF documents (.pdf)</p>
           </div>
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <a href="/api/upload/sample-excel" class="btn btn-secondary btn-sm" target="_blank">
-              📊 Download Sample Excel
+            <a href="/api/upload/sample-excel" class="btn btn-secondary btn-sm" target="_blank" title="Student Participants sample excel">
+              📊 Participant Excel
+            </a>
+            <a href="/api/upload/sample-coordinators-excel" class="btn btn-secondary btn-sm" target="_blank" style="border-color: #f59e0b; color: #b45309;" title="Coordinators sample excel">
+              ⭐ Coordinator Excel
+            </a>
+            <a href="/api/upload/sample-appreciation-excel" class="btn btn-secondary btn-sm" target="_blank" style="border-color: #10b981; color: #047857;" title="Appreciation / Winners sample excel with Prizes">
+              🏅 Appreciation Excel
             </a>
             <a href="/api/upload/sample-pdf" class="btn btn-secondary btn-sm" target="_blank">
-              📑 Download Sample PDF
+              📑 Sample PDF
             </a>
           </div>
         </div>
@@ -215,7 +255,8 @@
               <div class="dropzone-icon">📊</div>
               <h3>Click or Drag & Drop Excel File Here</h3>
               <p>Supports .xlsx and .xls spreadsheets up to 15MB</p>
-              <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelected(event, 'excel')">
+              <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;"
+                onchange="handleFileSelected(event, 'excel')">
             </div>
           </div>
 
@@ -232,15 +273,18 @@
               <div class="dropzone-icon">📑</div>
               <h3>Click or Drag & Drop PDF File Here</h3>
               <p>Extracts participant tables and roll numbers from official PDF lists</p>
-              <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;" onchange="handleFileSelected(event, 'pdf')">
+              <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;"
+                onchange="handleFileSelected(event, 'pdf')">
             </div>
           </div>
 
           <!-- SELECTED FILE BANNER -->
-          <div id="fileInfoArea" style="display: none; margin-top: 1.5rem; padding: 1rem; background: var(--surface-subtle); border-radius: var(--radius-sm); align-items: center; justify-content: space-between;">
+          <div id="fileInfoArea"
+            style="display: none; margin-top: 1.5rem; padding: 1rem; background: var(--surface-subtle); border-radius: var(--radius-sm); align-items: center; justify-content: space-between;">
             <div>
               <strong id="selectedFileName" style="color: var(--text-main);">filename</strong>
-              <span id="selectedFileSize" style="color: var(--text-muted); font-size: 0.85rem; margin-left: 0.5rem;">(0 KB)</span>
+              <span id="selectedFileSize" style="color: var(--text-muted); font-size: 0.85rem; margin-left: 0.5rem;">(0
+                KB)</span>
             </div>
             <button id="startUploadBtn" class="btn btn-primary" onclick="startFileUpload()">
               ⚡ Process & Import Records
@@ -249,11 +293,14 @@
 
           <!-- IMPORT RESULT SUMMARY -->
           <div id="uploadResultArea" style="display: none; margin-top: 2rem;">
-            <div id="uploadResultAlert" class="badge badge-success" style="font-size: 0.95rem; padding: 0.6rem 1.25rem; margin-bottom: 1rem;">
+            <div id="uploadResultAlert" class="badge badge-success"
+              style="font-size: 0.95rem; padding: 0.6rem 1.25rem; margin-bottom: 1rem;">
               Upload Successful
             </div>
 
-            <div id="uploadSummaryGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;"></div>
+            <div id="uploadSummaryGrid"
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            </div>
 
             <div id="invalidRecordsTableArea" style="display: none;">
               <h4 style="color: var(--danger); margin-bottom: 0.5rem;">⚠️ Skipped / Invalid Rows:</h4>
@@ -281,8 +328,10 @@
       <section id="tab-manual" style="display: none;">
         <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
           <div>
-            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Manual Participant Entry</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Register a student and associate them with participated events</p>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Manual Participant Entry
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Register a student and associate them with
+              participated events</p>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="clearManualForm()">Clear Form</button>
         </div>
@@ -292,7 +341,8 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="manualRoll">Roll Number *</label>
-                <input type="text" id="manualRoll" class="form-control" placeholder="e.g. 22A81A0520" required style="text-transform: uppercase;">
+                <input type="text" id="manualRoll" class="form-control" placeholder="e.g. 22A81A0520" required
+                  style="text-transform: uppercase;">
               </div>
               <div class="form-group">
                 <label class="form-label" for="manualName">Student Full Name *</label>
@@ -307,7 +357,8 @@
               </div>
               <div class="form-group">
                 <label class="form-label" for="manualSem">Semester / Year</label>
-                <input type="text" id="manualSem" class="form-control" placeholder="IV Semester B.Tech" value="IV Semester B.Tech">
+                <input type="text" id="manualSem" class="form-control" placeholder="IV Semester B.Tech"
+                  value="IV Semester B.Tech">
               </div>
             </div>
 
@@ -319,9 +370,11 @@
             <div class="form-group">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
                 <label class="form-label" style="margin: 0;">Participated Events</label>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="promptNewEventInline()">+ Create New Event</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="promptNewEventInline()">+ Create New
+                  Event</button>
               </div>
-              <div id="manualEventsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.65rem; background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); max-height: 200px; overflow-y: auto;">
+              <div id="manualEventsList"
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.65rem; background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); max-height: 200px; overflow-y: auto;">
                 <p style="color: var(--text-muted); font-size: 0.85rem;">Loading events list...</p>
               </div>
             </div>
@@ -342,12 +395,15 @@
       <section id="tab-students" style="display: none;">
         <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
           <div>
-            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Manage Student Records</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">View, search, edit, or delete participant registrations</p>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Manage Student Records
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">View, search, edit, or delete participant
+              registrations</p>
           </div>
           <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
             <button class="btn btn-primary btn-sm" onclick="switchTab('manual')">+ Add Participant</button>
-            <input type="text" id="studentSearchInput" class="form-control" placeholder="Search Roll, Name, Branch..." oninput="handleStudentSearchInput(this.value)" style="width: 240px;">
+            <input type="text" id="studentSearchInput" class="form-control" placeholder="Search Roll, Name, Branch..."
+              oninput="handleStudentSearchInput(this.value)" style="width: 240px;">
             <button class="btn btn-secondary btn-sm" onclick="loadStudents(1)">Search</button>
           </div>
         </div>
@@ -366,16 +422,20 @@
                 </tr>
               </thead>
               <tbody id="studentsTableBody">
-                <tr><td colspan="6" style="text-align: center; padding: 2rem;">Loading student records...</td></tr>
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 2rem;">Loading student records...</td>
+                </tr>
               </tbody>
             </table>
           </div>
 
           <!-- PAGINATION -->
-          <div id="studentsPagination" style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--surface-border); font-size: 0.85rem;">
+          <div id="studentsPagination"
+            style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--surface-border); font-size: 0.85rem;">
             <span id="pageInfo">Showing page 1</span>
             <div style="display: flex; gap: 0.5rem;">
-              <button id="prevPageBtn" class="btn btn-secondary btn-sm" onclick="changeStudentPage(-1)">Previous</button>
+              <button id="prevPageBtn" class="btn btn-secondary btn-sm"
+                onclick="changeStudentPage(-1)">Previous</button>
               <button id="nextPageBtn" class="btn btn-secondary btn-sm" onclick="changeStudentPage(1)">Next</button>
             </div>
           </div>
@@ -387,7 +447,8 @@
         <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
           <div>
             <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Manage Events</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Create and configure events associated with certificates</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Create and configure events associated with
+              certificates</p>
           </div>
         </div>
 
@@ -398,7 +459,8 @@
             <form onsubmit="handleCreateEvent(event)">
               <div class="form-group">
                 <label class="form-label" for="newEventName">Event Name *</label>
-                <input type="text" id="newEventName" class="form-control" placeholder="e.g. AI & Robotics 2026" required>
+                <input type="text" id="newEventName" class="form-control" placeholder="e.g. AI & Robotics 2026"
+                  required>
               </div>
               <div class="form-group">
                 <label class="form-label" for="newEventDate">Event Date</label>
@@ -406,12 +468,14 @@
               </div>
               <div class="form-group">
                 <label class="form-label" for="newEventDesc">Description</label>
-                <textarea id="newEventDesc" class="form-control" rows="2" placeholder="Brief details about the event"></textarea>
+                <textarea id="newEventDesc" class="form-control" rows="2"
+                  placeholder="Brief details about the event"></textarea>
               </div>
 
               <!-- TEMPLATE CONFIGURATION -->
               <div class="form-group" style="margin-bottom: 0.75rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                <label
+                  style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
                   <input type="checkbox" id="newEventUseMainTemplate" checked onchange="toggleNewEventTemplateConfig()">
                   <span>🏛️ Use Institutional Main Templates</span>
                 </label>
@@ -420,17 +484,26 @@
                 </small>
               </div>
 
-              <div id="newEventCustomTemplatesGroup" style="display: none; margin-bottom: 1.25rem; background: var(--surface-subtle); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+              <div id="newEventCustomTemplatesGroup"
+                style="display: none; margin-bottom: 1.25rem; background: var(--surface-subtle); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
                 <div class="form-group" style="margin-bottom: 0.75rem;">
-                  <label class="form-label" for="newEventParticipantTemplate" style="font-size: 0.8rem;">Participant Template</label>
+                  <label class="form-label" for="newEventParticipantTemplate" style="font-size: 0.8rem;">Participant
+                    Template</label>
                   <select id="newEventParticipantTemplate" class="form-control" style="font-size: 0.85rem;">
                     <option value="">-- Active Institutional Participation Template --</option>
                   </select>
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" for="newEventCoordinatorTemplate" style="font-size: 0.8rem;">Coordinator Template</label>
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                  <label class="form-label" for="newEventCoordinatorTemplate" style="font-size: 0.8rem;">Coordinator
+                    Template</label>
                   <select id="newEventCoordinatorTemplate" class="form-control" style="font-size: 0.85rem;">
                     <option value="">-- Active Institutional Coordination Template --</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="newEventAppreciationTemplate" style="font-size: 0.8rem;">Appreciation / Winner Template</label>
+                  <select id="newEventAppreciationTemplate" class="form-control" style="font-size: 0.85rem;">
+                    <option value="">-- Active Institutional Appreciation Template --</option>
                   </select>
                 </div>
               </div>
@@ -453,7 +526,9 @@
                   </tr>
                 </thead>
                 <tbody id="eventsTableBody">
-                  <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading events...</td></tr>
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 2rem;">Loading events...</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -465,12 +540,14 @@
       <section id="tab-event-certs" style="display: none;">
         <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
           <div>
-            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800; display: flex; align-items: center; gap: 0.6rem;">
+            <h2
+              style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800; display: flex; align-items: center; gap: 0.6rem;">
               <span>📜</span>
               <span>Add Certificate for Separate Event</span>
             </h2>
             <p style="color: var(--text-muted); font-size: 0.9rem;">
-              Issue and manage verified event certificates for <strong>students along with coordinators</strong> using the institutional main template.
+              Issue and manage verified event certificates for <strong>students along with coordinators</strong> using
+              the institutional main template.
             </p>
           </div>
           <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
@@ -480,17 +557,23 @@
         </div>
 
         <!-- DYNAMIC TEMPLATE NOTICE & EVENT SELECTOR CARD -->
-        <div class="card" style="margin-bottom: 1.5rem; border: 1px solid rgba(30, 58, 138, 0.2); background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
+        <div class="card"
+          style="margin-bottom: 1.5rem; border: 1px solid rgba(30, 58, 138, 0.2); background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
           <!-- DYNAMIC BANNER: TEMPLATES IN USE -->
-          <div id="eventCertTemplateBanner" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+          <div id="eventCertTemplateBanner"
+            style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
             <div style="display: flex; align-items: center; gap: 0.6rem;">
               <span id="eventCertBannerIcon" style="font-size: 1.25rem;">🏛️</span>
               <div>
-                <strong id="eventCertBannerTitle" style="color: #1e40af; font-size: 0.9rem;">Using Main Institutional Templates:</strong>
-                <span id="eventCertBannerDetail" style="color: #1e3a8a; font-size: 0.85rem; margin-left: 0.35rem;">Participation & Coordination Templates</span>
+                <strong id="eventCertBannerTitle" style="color: #1e40af; font-size: 0.9rem;">Using Main Institutional
+                  Templates:</strong>
+                <span id="eventCertBannerDetail"
+                  style="color: #1e3a8a; font-size: 0.85rem; margin-left: 0.35rem;">Participation & Coordination
+                  Templates</span>
               </div>
             </div>
-            <span id="eventCertBannerBadge" class="badge badge-success" style="font-size: 0.775rem;">✓ Institutional Defaults</span>
+            <span id="eventCertBannerBadge" class="badge badge-success" style="font-size: 0.775rem;">✓ Institutional
+              Defaults</span>
           </div>
 
           <!-- EVENT SELECTOR ROW -->
@@ -499,45 +582,78 @@
               <label class="form-label" for="eventCertEventSelect">
                 Select Separate Event <span style="color: var(--danger);">*</span>
               </label>
-              <select id="eventCertEventSelect" class="form-control" onchange="onEventCertEventChanged(this.value)" style="font-weight: 600; font-size: 0.95rem;">
+              <select id="eventCertEventSelect" class="form-control" onchange="onEventCertEventChanged(this.value)"
+                style="font-weight: 600; font-size: 0.95rem;">
                 <option value="">-- Choose an Event to Manage Certificates --</option>
               </select>
             </div>
             <div style="flex: 1; display: flex; gap: 0.5rem;">
-              <button type="button" class="btn btn-primary btn-block" onclick="openQuickEventModal()" style="white-space: nowrap;">
+              <button type="button" class="btn btn-primary btn-block" onclick="openQuickEventModal()"
+                style="white-space: nowrap;">
                 + Add New Event
               </button>
             </div>
           </div>
 
           <!-- SELECTED EVENT REALTIME STATS BAR -->
-          <div id="eventCertSummaryBar" style="display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--surface-border);">
+          <div id="eventCertSummaryBar"
+            style="display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--surface-border);">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-              <div style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
-                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Active Event</span>
-                <h4 id="eventCertActiveName" style="font-size: 1rem; color: var(--primary); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</h4>
-                <p id="eventCertActiveDate" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">-</p>
+              <div
+                style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+                <span
+                  style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Active
+                  Event</span>
+                <h4 id="eventCertActiveName"
+                  style="font-size: 1rem; color: var(--primary); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  -</h4>
+                <p id="eventCertActiveDate" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">-
+                </p>
               </div>
 
-              <div style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
-                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Certificates</span>
-                <h3 id="eventCertStatTotal" style="font-size: 1.4rem; color: var(--text-main); margin-top: 0.25rem;">0</h3>
+              <div
+                style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+                <span
+                  style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total
+                  Certificates</span>
+                <h3 id="eventCertStatTotal" style="font-size: 1.4rem; color: var(--text-main); margin-top: 0.25rem;">0
+                </h3>
               </div>
 
-              <div style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+              <div
+                style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="font-size: 0.75rem; color: var(--primary-light); font-weight: 700; text-transform: uppercase;">🎓 Students</span>
+                  <span
+                    style="font-size: 0.75rem; color: var(--primary-light); font-weight: 700; text-transform: uppercase;">🎓
+                    Students</span>
                   <span class="badge badge-primary" style="font-size: 0.7rem;">Participants</span>
                 </div>
-                <h3 id="eventCertStatStudents" style="font-size: 1.4rem; color: var(--primary); margin-top: 0.25rem;">0</h3>
+                <h3 id="eventCertStatStudents" style="font-size: 1.4rem; color: var(--primary); margin-top: 0.25rem;">0
+                </h3>
               </div>
 
-              <div style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid #fed7aa; background: #fffaf0;">
+              <div
+                style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid #fed7aa; background: #fffaf0;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="font-size: 0.75rem; color: #b45309; font-weight: 700; text-transform: uppercase;">⭐ Coordinators</span>
-                  <span class="badge badge-warning" style="font-size: 0.7rem; background: #fef3c7; color: #92400e;">Honored</span>
+                  <span style="font-size: 0.75rem; color: #b45309; font-weight: 700; text-transform: uppercase;">⭐
+                    Coordinators</span>
+                  <span class="badge badge-warning"
+                    style="font-size: 0.7rem; background: #fef3c7; color: #92400e;">Honored</span>
                 </div>
-                <h3 id="eventCertStatCoordinators" style="font-size: 1.4rem; color: #b45309; margin-top: 0.25rem;">0</h3>
+                <h3 id="eventCertStatCoordinators" style="font-size: 1.4rem; color: #b45309; margin-top: 0.25rem;">0
+                </h3>
+              </div>
+
+              <div
+                style="background: #fff; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid #a7f3d0; background: #ecfdf5;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="font-size: 0.75rem; color: #047857; font-weight: 700; text-transform: uppercase;">🏅
+                    Appreciation</span>
+                  <span class="badge badge-success"
+                    style="font-size: 0.7rem; background: #d1fae5; color: #065f46;">Winners</span>
+                </div>
+                <h3 id="eventCertStatAppreciation" style="font-size: 1.4rem; color: #047857; margin-top: 0.25rem;">0
+                </h3>
               </div>
             </div>
           </div>
@@ -545,21 +661,26 @@
 
         <!-- ISSUANCE SECTION (Shown when event is selected) -->
         <div id="eventCertIssuanceContainer" style="display: none;">
-          
+
           <!-- ISSUANCE CARD -->
           <div class="card" style="margin-bottom: 1.5rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border); padding-bottom: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border); padding-bottom: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
               <div>
-                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Issue Certificate for Selected Event</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem;">Choose whether this certificate is for a Student Participant or an Event Coordinator</p>
+                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Issue Certificate for
+                  Selected Event</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Choose whether this certificate is for a
+                  Student Participant or an Event Coordinator</p>
               </div>
 
               <!-- SUB TABS: SINGLE VS BULK -->
               <div style="display: flex; gap: 0.4rem;">
-                <button type="button" id="issuanceModeSingleBtn" class="btn btn-primary btn-sm" onclick="setEventCertMode('single')">
+                <button type="button" id="issuanceModeSingleBtn" class="btn btn-primary btn-sm"
+                  onclick="setEventCertMode('single')">
                   ✍️ Single Recipient
                 </button>
-                <button type="button" id="issuanceModeBulkBtn" class="btn btn-secondary btn-sm" onclick="setEventCertMode('bulk')">
+                <button type="button" id="issuanceModeBulkBtn" class="btn btn-secondary btn-sm"
+                  onclick="setEventCertMode('bulk')">
                   📑 Batch / Bulk Add
                 </button>
               </div>
@@ -568,29 +689,46 @@
             <!-- 1. SINGLE RECIPIENT FORM -->
             <div id="eventCertSingleFormArea">
               <form id="eventCertSingleForm" onsubmit="handleIssueEventCertificate(event)">
-                
+
                 <!-- ROLE SELECTOR CARDS -->
                 <div class="form-group" style="margin-bottom: 1.25rem;">
                   <label class="form-label" style="font-weight: 700;">Certificate Recipient Category *</label>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem;">
                     <!-- STUDENT CARD -->
-                    <label id="roleCardStudent" style="cursor: pointer; border: 2px solid var(--primary-light); background: #eff6ff; padding: 1rem; border-radius: var(--radius-sm); display: flex; align-items: flex-start; gap: 0.75rem; transition: all 0.2s;">
-                      <input type="radio" name="eventCertRoleOption" value="Student" checked onchange="handleCertRoleChange('Student')" style="margin-top: 0.2rem;">
+                    <label id="roleCardStudent"
+                      style="cursor: pointer; border: 2px solid var(--primary-light); background: #eff6ff; padding: 0.85rem; border-radius: var(--radius-sm); display: flex; align-items: flex-start; gap: 0.65rem; transition: all 0.2s;">
+                      <input type="radio" name="eventCertRoleOption" value="Student" checked
+                        onchange="handleCertRoleChange('Student')" style="margin-top: 0.2rem;">
                       <div>
-                        <strong style="color: var(--primary); font-size: 0.95rem; display: block;">🎓 Student (Participant)</strong>
-                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">
-                          Issues <em>Certificate of Participation</em> for attending or participating in the event.
+                        <strong style="color: var(--primary); font-size: 0.9rem; display: block;">🎓 Student Participant</strong>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">
+                          Issues <em>Certificate of Participation</em>.
                         </span>
                       </div>
                     </label>
 
                     <!-- COORDINATOR CARD -->
-                    <label id="roleCardCoordinator" style="cursor: pointer; border: 2px solid var(--surface-border); background: #fff; padding: 1rem; border-radius: var(--radius-sm); display: flex; align-items: flex-start; gap: 0.75rem; transition: all 0.2s;">
-                      <input type="radio" name="eventCertRoleOption" value="Coordinator" onchange="handleCertRoleChange('Coordinator')" style="margin-top: 0.2rem;">
+                    <label id="roleCardCoordinator"
+                      style="cursor: pointer; border: 2px solid var(--surface-border); background: #fff; padding: 0.85rem; border-radius: var(--radius-sm); display: flex; align-items: flex-start; gap: 0.65rem; transition: all 0.2s;">
+                      <input type="radio" name="eventCertRoleOption" value="Coordinator"
+                        onchange="handleCertRoleChange('Coordinator')" style="margin-top: 0.2rem;">
                       <div>
-                        <strong style="color: #b45309; font-size: 0.95rem; display: block;">⭐ Event Coordinator</strong>
-                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">
-                          Issues <em>Certificate of Appreciation / Coordination</em> honoring organizing contribution.
+                        <strong style="color: #b45309; font-size: 0.9rem; display: block;">⭐ Event Coordinator</strong>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">
+                          Issues <em>Certificate of Coordination</em>.
+                        </span>
+                      </div>
+                    </label>
+
+                    <!-- APPRECIATION / WINNER CARD -->
+                    <label id="roleCardAppreciation"
+                      style="cursor: pointer; border: 2px solid var(--surface-border); background: #fff; padding: 0.85rem; border-radius: var(--radius-sm); display: flex; align-items: flex-start; gap: 0.65rem; transition: all 0.2s;">
+                      <input type="radio" name="eventCertRoleOption" value="Appreciation"
+                        onchange="handleCertRoleChange('Appreciation')" style="margin-top: 0.2rem;">
+                      <div>
+                        <strong style="color: #047857; font-size: 0.9rem; display: block;">🏅 Appreciation / Winner</strong>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">
+                          Issues <em>Certificate of Appreciation</em> (Prizes/Ranks).
                         </span>
                       </div>
                     </label>
@@ -604,8 +742,11 @@
                       <span id="labelRollText">Roll Number</span> <span style="color: var(--danger);">*</span>
                     </label>
                     <div style="display: flex; gap: 0.5rem;">
-                      <input type="text" id="eventCertRoll" class="form-control" placeholder="e.g. 22A81A0501" required style="text-transform: uppercase;" onblur="autoFillStudentDetails(this.value)">
-                      <button type="button" class="btn btn-secondary btn-sm" onclick="autoFillStudentDetails(document.getElementById('eventCertRoll').value)" title="Autofill if exists">🔍</button>
+                      <input type="text" id="eventCertRoll" class="form-control" placeholder="e.g. 22A81A0501" required
+                        style="text-transform: uppercase;" onblur="autoFillStudentDetails(this.value)">
+                      <button type="button" class="btn btn-secondary btn-sm"
+                        onclick="autoFillStudentDetails(document.getElementById('eventCertRoll').value)"
+                        title="Autofill if exists">🔍</button>
                     </div>
                     <small style="color: var(--text-muted); font-size: 0.75rem;">Enter Roll No or Coordinator ID</small>
                   </div>
@@ -624,19 +765,23 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label" for="eventCertSem">Semester / Year</label>
-                    <input type="text" id="eventCertSem" class="form-control" placeholder="IV Semester B.Tech" value="IV Semester B.Tech">
+                    <input type="text" id="eventCertSem" class="form-control" placeholder="IV Semester B.Tech"
+                      value="IV Semester B.Tech">
                   </div>
                 </div>
 
                 <!-- COORDINATOR SPECIFIC SETTINGS (Hidden when role is Student) -->
-                <div id="coordinatorFieldsArea" style="display: none; background: #fffaf0; border: 1px solid #fed7aa; padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
-                  <h4 style="color: #92400e; font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                <div id="coordinatorFieldsArea"
+                  style="display: none; background: #fffaf0; border: 1px solid #fed7aa; padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+                  <h4
+                    style="color: #92400e; font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
                     <span>⭐</span> Coordinator Recognition Details
                   </h4>
                   <div class="form-row">
                     <div class="form-group" style="margin-bottom: 0;">
                       <label class="form-label" for="eventCertDesignation">Coordinator Designation *</label>
-                      <select id="eventCertDesignation" class="form-control" onchange="checkCustomDesignation(this.value)">
+                      <select id="eventCertDesignation" class="form-control"
+                        onchange="checkCustomDesignation(this.value)">
                         <option value="Student Coordinator">Student Coordinator</option>
                         <option value="Lead Event Coordinator">Lead Event Coordinator</option>
                         <option value="Faculty Coordinator">Faculty Coordinator</option>
@@ -644,7 +789,8 @@
                         <option value="Organizing Committee">Organizing Committee Lead</option>
                         <option value="__custom__">Custom Designation...</option>
                       </select>
-                      <input type="text" id="eventCertCustomDesignation" class="form-control" placeholder="Enter custom coordinator title" style="display: none; margin-top: 0.5rem;">
+                      <input type="text" id="eventCertCustomDesignation" class="form-control"
+                        placeholder="Enter custom coordinator title" style="display: none; margin-top: 0.5rem;">
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
@@ -658,13 +804,48 @@
                   </div>
                 </div>
 
+                <!-- APPRECIATION / WINNER SPECIFIC SETTINGS -->
+                <div id="appreciationFieldsArea"
+                  style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+                  <h4
+                    style="color: #047857; font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span>🏅</span> Appreciation / Winner Recognition Details
+                  </h4>
+                  <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" for="eventCertPosition">Position / Prize / Rank *</label>
+                      <select id="eventCertPosition" class="form-control"
+                        onchange="checkCustomPosition(this.value)">
+                        <option value="1st Prize">1st Prize</option>
+                        <option value="2nd Prize">2nd Prize</option>
+                        <option value="3rd Prize">3rd Prize</option>
+                        <option value="Winner">Winner</option>
+                        <option value="Runner-Up">Runner-Up</option>
+                        <option value="First Place">First Place</option>
+                        <option value="Second Place">Second Place</option>
+                        <option value="Consolation Prize">Consolation Prize</option>
+                        <option value="Special Merit">Special Merit</option>
+                        <option value="__custom__">Custom Position / Prize...</option>
+                      </select>
+                      <input type="text" id="eventCertCustomPosition" class="form-control"
+                        placeholder="e.g. Best Innovator or 1st Place" style="display: none; margin-top: 0.5rem;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" for="eventCertApprecType">Certificate Title</label>
+                      <input type="text" id="eventCertApprecType" class="form-control" value="Certificate of Appreciation" readonly style="background: #f1f5f9; color: #334155; font-weight: 600;">
+                    </div>
+                  </div>
+                </div>
+
                 <div class="form-group">
                   <label class="form-label" for="eventCertEmail">Email Address (Optional)</label>
                   <input type="email" id="eventCertEmail" class="form-control" placeholder="student@example.com">
                 </div>
 
                 <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1rem;">
-                  <button type="submit" id="issueCertSubmitBtn" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 700;">
+                  <button type="submit" id="issueCertSubmitBtn" class="btn btn-primary"
+                    style="padding: 0.75rem 1.75rem; font-weight: 700;">
                     💾 Issue Certificate Now
                   </button>
                   <button type="button" class="btn btn-secondary" onclick="resetEventCertSingleForm()">
@@ -676,66 +857,99 @@
 
             <!-- 2. BATCH / BULK ENTRY FORM -->
             <div id="eventCertBulkFormArea" style="display: none;">
-              
+
               <!-- RECIPIENT CATEGORY SELECTOR FOR BULK -->
-              <div style="background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); margin-bottom: 1.25rem;">
-                <label class="form-label" style="font-weight: 700; margin-bottom: 0.5rem; display: block;">1. Select Bulk Recipient Target:</label>
+              <div
+                style="background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); margin-bottom: 1.25rem;">
+                <label class="form-label" style="font-weight: 700; margin-bottom: 0.5rem; display: block;">1. Select
+                  Bulk Recipient Target:</label>
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                  <button type="button" id="bulkTargetCoordBtn" class="btn btn-warning btn-sm" onclick="setBulkRecipientTarget('coordinators')" style="font-weight: 700; border-radius: 6px; padding: 0.45rem 1rem;">
+                  <button type="button" id="bulkTargetCoordBtn" class="btn btn-warning btn-sm"
+                    onclick="setBulkRecipientTarget('coordinators')"
+                    style="font-weight: 700; border-radius: 6px; padding: 0.45rem 1rem;">
                     ⭐ Bulk Event Coordinators
                   </button>
-                  <button type="button" id="bulkTargetPartBtn" class="btn btn-secondary btn-sm" onclick="setBulkRecipientTarget('participants')" style="border-radius: 6px; padding: 0.45rem 1rem;">
+                  <button type="button" id="bulkTargetApprecBtn" class="btn btn-secondary btn-sm"
+                    onclick="setBulkRecipientTarget('appreciation')"
+                    style="font-weight: 700; border-radius: 6px; padding: 0.45rem 1rem;">
+                    🏅 Bulk Appreciation / Winners
+                  </button>
+                  <button type="button" id="bulkTargetPartBtn" class="btn btn-secondary btn-sm"
+                    onclick="setBulkRecipientTarget('participants')" style="border-radius: 6px; padding: 0.45rem 1rem;">
                     🎓 Bulk Student Participants
                   </button>
-                  <button type="button" id="bulkTargetMixedBtn" class="btn btn-secondary btn-sm" onclick="setBulkRecipientTarget('mixed')" style="border-radius: 6px; padding: 0.45rem 1rem;">
+                  <button type="button" id="bulkTargetMixedBtn" class="btn btn-secondary btn-sm"
+                    onclick="setBulkRecipientTarget('mixed')" style="border-radius: 6px; padding: 0.45rem 1rem;">
                     🔀 Mixed (Role specified per row)
                   </button>
                 </div>
-                <div id="bulkTargetDescNotice" style="margin-top: 0.6rem; font-size: 0.8rem; color: #92400e; background: #fffaf0; padding: 0.5rem 0.75rem; border-radius: 4px; border-left: 3px solid #f59e0b;">
-                  ⭐ <strong>Coordinator Mode:</strong> All imported or pasted rows are automatically assigned as <strong>Event Coordinators</strong> and issued verified Coordinator Certificates.
+                <div id="bulkTargetDescNotice"
+                  style="margin-top: 0.6rem; font-size: 0.8rem; color: #92400e; background: #fffaf0; padding: 0.5rem 0.75rem; border-radius: 4px; border-left: 3px solid #f59e0b;">
+                  ⭐ <strong>Coordinator Mode:</strong> All imported or pasted rows are automatically assigned as
+                  <strong>Event Coordinators</strong> and issued verified Coordinator Certificates.
                 </div>
               </div>
 
               <!-- BULK INPUT METHOD SUBTABS -->
-              <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--surface-border); padding-bottom: 0.5rem;">
-                <button type="button" id="bulkMethodFileBtn" class="btn btn-primary btn-sm" onclick="setBulkInputMethod('file')">
+              <div
+                style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--surface-border); padding-bottom: 0.5rem;">
+                <button type="button" id="bulkMethodFileBtn" class="btn btn-primary btn-sm"
+                  onclick="setBulkInputMethod('file')">
                   📁 Upload Excel / CSV File
                 </button>
-                <button type="button" id="bulkMethodPasteBtn" class="btn btn-secondary btn-sm" onclick="setBulkInputMethod('paste')">
+                <button type="button" id="bulkMethodPasteBtn" class="btn btn-secondary btn-sm"
+                  onclick="setBulkInputMethod('paste')">
                   📋 Paste Spreadsheet / Text
                 </button>
               </div>
 
               <!-- METHOD A: FILE UPLOAD (EXCEL / CSV) -->
               <div id="bulkFileMethodArea">
-                <div class="drop-zone" id="bulkCertDropZone" style="padding: 2rem 1.5rem; border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); text-align: center; background: #fff; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('bulkCertFileInput').click()">
+                <div class="drop-zone" id="bulkCertDropZone"
+                  style="padding: 2rem 1.5rem; border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); text-align: center; background: #fff; cursor: pointer; transition: all 0.2s;"
+                  onclick="document.getElementById('bulkCertFileInput').click()">
                   <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📁</div>
                   <h4 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">
                     Drag & Drop Coordinator / Student Excel File Here
                   </h4>
                   <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-                    Supports <strong>.xlsx, .xls, or .csv</strong> with columns: <em>Roll No, Name, Branch, Semester, Designation</em>
+                    Supports <strong>.xlsx, .xls, or .csv</strong> with columns: <em>Roll No, Name, Branch, Semester,
+                      Designation</em>
                   </p>
-                  <input type="file" id="bulkCertFileInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleBulkFileInputChange(event)">
+                  <input type="file" id="bulkCertFileInput" accept=".xlsx,.xls,.csv" style="display: none;"
+                    onchange="handleBulkFileInputChange(event)">
                   <div style="display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('bulkCertFileInput').click();">
+                    <button type="button" class="btn btn-secondary btn-sm"
+                      onclick="event.stopPropagation(); document.getElementById('bulkCertFileInput').click();">
                       Browse File
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); downloadCoordinatorSampleExcel();" style="border-color: #f59e0b; color: #b45309;">
-                      📥 Download Coordinator Excel Template (.xlsx)
+                    <button type="button" class="btn btn-secondary btn-sm"
+                      onclick="event.stopPropagation(); downloadCoordinatorSampleExcel();"
+                      style="border-color: #f59e0b; color: #b45309;">
+                      ⭐ Coordinator Excel (.xlsx)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm"
+                      onclick="event.stopPropagation(); downloadAppreciationSampleExcel();"
+                      style="border-color: #10b981; color: #047857;">
+                      🏅 Appreciation Excel (.xlsx)
                     </button>
                   </div>
                 </div>
 
                 <!-- FILE PARSED PREVIEW CONTAINER -->
-                <div id="bulkFilePreviewArea" style="display: none; margin-top: 1.25rem; background: #fff; border: 1px solid var(--surface-border); border-radius: var(--radius-sm); padding: 1rem;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div id="bulkFilePreviewArea"
+                  style="display: none; margin-top: 1.25rem; background: #fff; border: 1px solid var(--surface-border); border-radius: var(--radius-sm); padding: 1rem;">
+                  <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
-                      <strong id="bulkPreviewTitle" style="font-size: 0.95rem; color: var(--text-main);">Parsed 0 Records</strong>
-                      <span id="bulkPreviewBadge" class="badge badge-warning" style="margin-left: 0.5rem;">Ready to Issue</span>
+                      <strong id="bulkPreviewTitle" style="font-size: 0.95rem; color: var(--text-main);">Parsed 0
+                        Records</strong>
+                      <span id="bulkPreviewBadge" class="badge badge-warning" style="margin-left: 0.5rem;">Ready to
+                        Issue</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
-                      <button type="button" id="btnSubmitBulkFile" class="btn btn-primary btn-sm" onclick="submitBulkFileRecipients()" style="font-weight: 700;">
+                      <button type="button" id="btnSubmitBulkFile" class="btn btn-primary btn-sm"
+                        onclick="submitBulkFileRecipients()" style="font-weight: 700;">
                         ⚡ Issue All Certificates Now
                       </button>
                       <button type="button" class="btn btn-secondary btn-sm" onclick="clearBulkFileSelection()">
@@ -744,7 +958,8 @@
                     </div>
                   </div>
 
-                  <div class="table-responsive" style="max-height: 240px; overflow-y: auto; border: 1px solid var(--surface-border); border-radius: 4px;">
+                  <div class="table-responsive"
+                    style="max-height: 240px; overflow-y: auto; border: 1px solid var(--surface-border); border-radius: 4px;">
                     <table class="data-table" style="font-size: 0.8rem;">
                       <thead>
                         <tr>
@@ -765,23 +980,27 @@
 
               <!-- METHOD B: PASTE TEXT / SPREADSHEET DATA -->
               <div id="bulkPasteMethodArea" style="display: none;">
-                <div style="background: var(--surface-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem; font-size: 0.825rem;">
+                <div
+                  style="background: var(--surface-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem; font-size: 0.825rem;">
                   <p style="font-weight: 700; margin-bottom: 0.3rem; color: var(--text-main);">
                     Copy and paste rows directly from Excel, Google Sheets, or text (one per line):
                   </p>
-                  <code id="bulkPasteFormatHint" style="background: #fff; padding: 0.2rem 0.5rem; border: 1px solid var(--surface-border); border-radius: 4px; display: inline-block;">
+                  <code id="bulkPasteFormatHint"
+                    style="background: #fff; padding: 0.2rem 0.5rem; border: 1px solid var(--surface-border); border-radius: 4px; display: inline-block;">
                     RollNo, Full Name, Branch, Semester, Designation
                   </code>
                   <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
                     <button type="button" class="btn btn-secondary btn-sm" onclick="fillSampleBulkEventCerts()">
                       📋 Load Sample Rows
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('eventCertBulkInput').value = ''">
+                    <button type="button" class="btn btn-secondary btn-sm"
+                      onclick="document.getElementById('eventCertBulkInput').value = ''">
                       Clear
                     </button>
                     <div style="margin-left: auto; display: flex; align-items: center; gap: 0.4rem;">
                       <label style="font-size: 0.75rem; color: var(--text-muted);">Default Title:</label>
-                      <select id="bulkDefaultDesignation" class="form-control" style="font-size: 0.8rem; padding: 0.25rem 0.5rem; width: auto;">
+                      <select id="bulkDefaultDesignation" class="form-control"
+                        style="font-size: 0.8rem; padding: 0.25rem 0.5rem; width: auto;">
                         <option value="Student Coordinator">Student Coordinator</option>
                         <option value="Lead Event Coordinator">Lead Event Coordinator</option>
                         <option value="Technical Coordinator">Technical Coordinator</option>
@@ -792,10 +1011,13 @@
                 </div>
 
                 <div class="form-group" style="margin-bottom: 0.85rem;">
-                  <textarea id="eventCertBulkInput" class="form-control" rows="8" placeholder="22A81A0501, Aarav Sharma, CSE, IV Semester B.Tech, Student Coordinator&#10;22A81A0502, Bhavya Sri, AIML, IV Semester B.Tech, Lead Event Coordinator&#10;22A81A0503, Chaitanya Varma, ECE, IV Semester B.Tech, Technical Coordinator" style="font-family: monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
+                  <textarea id="eventCertBulkInput" class="form-control" rows="8"
+                    placeholder="22A81A0501, Aarav Sharma, CSE, IV Semester B.Tech, Student Coordinator&#10;22A81A0502, Bhavya Sri, AIML, IV Semester B.Tech, Lead Event Coordinator&#10;22A81A0503, Chaitanya Varma, ECE, IV Semester B.Tech, Technical Coordinator"
+                    style="font-family: monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
                 </div>
 
-                <button type="button" id="bulkCertSubmitBtn" class="btn btn-primary" onclick="submitBulkEventCertificates()" style="padding: 0.75rem 1.75rem; font-weight: 700;">
+                <button type="button" id="bulkCertSubmitBtn" class="btn btn-primary"
+                  onclick="submitBulkEventCertificates()" style="padding: 0.75rem 1.75rem; font-weight: 700;">
                   ⚡ Process & Issue All Batch Certificates
                 </button>
               </div>
@@ -806,21 +1028,36 @@
 
           <!-- TABLE OF ISSUED CERTIFICATES FOR THIS EVENT -->
           <div class="card" style="padding: 0; overflow: hidden;">
-            <div style="padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--surface-border);">
+            <div
+              style="padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--surface-border);">
               <div>
-                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Issued Certificates</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem;">All verified certificates recorded for this event</p>
+                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Issued Certificates
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">All verified certificates recorded for this
+                  event</p>
               </div>
 
               <!-- FILTER TABS & SEARCH -->
               <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                <div class="pill-group" style="display: flex; background: var(--surface-subtle); padding: 0.25rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
-                  <button type="button" id="filterTabAll" class="btn btn-sm btn-primary" onclick="setEventCertFilter('all')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">All (<span id="countPillAll">0</span>)</button>
-                  <button type="button" id="filterTabStudents" class="btn btn-sm btn-ghost" onclick="setEventCertFilter('students')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">🎓 Students (<span id="countPillStudents">0</span>)</button>
-                  <button type="button" id="filterTabCoordinators" class="btn btn-sm btn-ghost" onclick="setEventCertFilter('coordinators')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">⭐ Coordinators (<span id="countPillCoordinators">0</span>)</button>
+                <div class="pill-group"
+                  style="display: flex; background: var(--surface-subtle); padding: 0.25rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+                  <button type="button" id="filterTabAll" class="btn btn-sm btn-primary"
+                    onclick="setEventCertFilter('all')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">All (<span
+                      id="countPillAll">0</span>)</button>
+                  <button type="button" id="filterTabStudents" class="btn btn-sm btn-ghost"
+                    onclick="setEventCertFilter('students')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">🎓
+                    Students (<span id="countPillStudents">0</span>)</button>
+                  <button type="button" id="filterTabCoordinators" class="btn btn-sm btn-ghost"
+                    onclick="setEventCertFilter('coordinators')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">⭐
+                    Coordinators (<span id="countPillCoordinators">0</span>)</button>
+                  <button type="button" id="filterTabAppreciation" class="btn btn-sm btn-ghost"
+                    onclick="setEventCertFilter('appreciation')" style="padding: 0.35rem 0.75rem; border-radius: 6px;">🏅
+                    Appreciation (<span id="countPillAppreciation">0</span>)</button>
                 </div>
 
-                <input type="text" id="eventCertSearchInput" class="form-control" placeholder="Search Roll, Name..." oninput="handleEventCertSearch(this.value)" style="width: 200px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+                <input type="text" id="eventCertSearchInput" class="form-control" placeholder="Search Roll, Name..."
+                  oninput="handleEventCertSearch(this.value)"
+                  style="width: 200px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
               </div>
             </div>
 
@@ -839,7 +1076,10 @@
                   </tr>
                 </thead>
                 <tbody id="eventCertsTableBody">
-                  <tr><td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">Select an event above to load certificates.</td></tr>
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">Select an
+                      event above to load certificates.</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -853,11 +1093,14 @@
       <section id="tab-template" style="display: none;">
         <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
           <div>
-            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Certificate Template Studio</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Fine-tune text placement coordinates (X, Y) and typography with live interactive preview</p>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Certificate Template
+              Studio</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Fine-tune text placement coordinates (X, Y) and
+              typography with live interactive preview</p>
           </div>
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-            <button type="button" id="btnStudioActivate" class="btn btn-warning btn-sm" onclick="manuallyActivateCurrentTemplate()" style="display: none; font-weight: 700;">
+            <button type="button" id="btnStudioActivate" class="btn btn-warning btn-sm"
+              onclick="manuallyActivateCurrentTemplate()" style="display: none; font-weight: 700;">
               ⭐ Set as Active Template
             </button>
             <button class="btn btn-secondary btn-sm" onclick="resetStudioCoordinates()">↺ Reset Coordinates</button>
@@ -869,17 +1112,25 @@
         <div class="template-switcher-bar">
           <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
             <div class="template-pill-group">
-              <button type="button" id="btnStudioTypePart" class="template-pill-btn active" onclick="switchStudioTemplateType('participation')">
+              <button type="button" id="btnStudioTypePart" class="template-pill-btn active"
+                onclick="switchStudioTemplateType('participation')">
                 🎓 Participation Template
               </button>
-              <button type="button" id="btnStudioTypeCoord" class="template-pill-btn" onclick="switchStudioTemplateType('coordination')">
+              <button type="button" id="btnStudioTypeCoord" class="template-pill-btn"
+                onclick="switchStudioTemplateType('coordination')">
                 ⭐ Coordination Template
+              </button>
+              <button type="button" id="btnStudioTypeApprec" class="template-pill-btn"
+                onclick="switchStudioTemplateType('appreciation')">
+                🏅 Appreciation Template
               </button>
             </div>
 
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Or Select:</span>
-              <select id="studioTemplateSelector" class="form-control" style="font-size: 0.825rem; padding: 0.35rem 0.6rem; min-width: 220px;" onchange="onStudioTemplateSelected(this.value)">
+              <select id="studioTemplateSelector" class="form-control"
+                style="font-size: 0.825rem; padding: 0.35rem 0.6rem; min-width: 220px;"
+                onchange="onStudioTemplateSelected(this.value)">
                 <option value="">-- Choose From Template Library --</option>
               </select>
             </div>
@@ -894,38 +1145,47 @@
         <div class="studio-container">
           <!-- CANVAS PREVIEW PANEL -->
           <div class="studio-canvas-panel">
-            <div style="background: #0f172a; padding: 1rem; border-radius: var(--radius-sm); display: flex; justify-content: center; align-items: center;">
-              <canvas id="studioCanvas" width="1024" height="682" style="max-width: 100%; height: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-radius: 4px;"></canvas>
+            <div
+              style="background: #0f172a; padding: 1rem; border-radius: var(--radius-sm); display: flex; justify-content: center; align-items: center;">
+              <canvas id="studioCanvas" width="1024" height="682"
+                style="max-width: 100%; height: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-radius: 4px;"></canvas>
             </div>
             <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-              Interactive Preview (1024 × 682 px). Adjust coordinates on the right to align text exactly onto the template.
+              Interactive Preview (1024 × 682 px). Adjust coordinates on the right to align text exactly onto the
+              template.
             </p>
           </div>
 
           <!-- CONTROLS PANEL -->
           <div class="studio-controls-panel">
             <!-- UPLOAD NEW TEMPLATE SECTION -->
-            <div style="background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); margin-bottom: 1.25rem;">
+            <div
+              style="background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); margin-bottom: 1.25rem;">
               <h4 style="font-size: 0.95rem; margin-bottom: 0.6rem; font-weight: 700;">Upload New Template Image</h4>
               <form id="templateUploadForm" onsubmit="handleUploadNewTemplate(event)">
                 <div class="form-group" style="margin-bottom: 0.6rem;">
                   <label class="form-label" style="font-size: 0.75rem;">Template Name</label>
-                  <input type="text" id="newTemplateNameInput" class="form-control" placeholder="e.g. SVEC AI Summit Template" style="font-size: 0.85rem;" required>
+                  <input type="text" id="newTemplateNameInput" class="form-control"
+                    placeholder="e.g. SVEC AI Summit Template" style="font-size: 0.85rem;" required>
                 </div>
                 <div class="form-group" style="margin-bottom: 0.6rem;">
                   <label class="form-label" style="font-size: 0.75rem;">Template Role / Category</label>
                   <select id="newTemplateTypeSelect" class="form-control" style="font-size: 0.85rem;">
                     <option value="participation">🎓 Participation Template (Students)</option>
                     <option value="coordination">⭐ Coordination Template (Coordinators)</option>
+                    <option value="appreciation">🏅 Appreciation Template (Winners / Merit)</option>
                     <option value="general">📄 General Certificate Template</option>
                   </select>
                 </div>
                 <div class="form-group" style="margin-bottom: 0.75rem;">
                   <label class="form-label" style="font-size: 0.75rem;">Template Image (.jpg, .jpeg, .png)</label>
-                  <input type="file" id="newTemplateFileInput" accept=".jpg,.jpeg,.png" class="form-control" style="font-size: 0.85rem;" required>
+                  <input type="file" id="newTemplateFileInput" accept=".jpg,.jpeg,.png" class="form-control"
+                    style="font-size: 0.85rem;" required>
                 </div>
-                <div style="margin-bottom: 0.85rem; background: #fff; padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--surface-border);">
-                  <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0; color: var(--text-main); font-weight: 600;">
+                <div
+                  style="margin-bottom: 0.85rem; background: #fff; padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--surface-border);">
+                  <label
+                    style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0; color: var(--text-main); font-weight: 600;">
                     <input type="checkbox" id="newTemplateSetActive" checked style="cursor: pointer;">
                     <span>⭐ Set as Active Template immediately</span>
                   </label>
@@ -938,7 +1198,8 @@
 
             <!-- STUDENT NAME CONTROLS -->
             <div class="field-slider-group">
-              <h4><span>Student / Recipient Name</span> <span id="label-name-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
+              <h4><span>Student / Recipient Name</span> <span id="label-name-coords"
+                  style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
               <div class="form-row">
                 <div>
                   <label style="font-size: 0.75rem;">X Coordinate</label>
@@ -957,7 +1218,8 @@
 
             <!-- SEMESTER CONTROLS -->
             <div class="field-slider-group">
-              <h4><span>Semester</span> <span id="label-semester-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
+              <h4><span>Semester</span> <span id="label-semester-coords"
+                  style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
               <div class="form-row">
                 <div>
                   <label style="font-size: 0.75rem;">X</label>
@@ -976,7 +1238,8 @@
 
             <!-- BRANCH CONTROLS -->
             <div class="field-slider-group">
-              <h4><span>Branch</span> <span id="label-branch-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
+              <h4><span>Branch</span> <span id="label-branch-coords"
+                  style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
               <div class="form-row">
                 <div>
                   <label style="font-size: 0.75rem;">X</label>
@@ -995,7 +1258,8 @@
 
             <!-- ROLL NO CONTROLS -->
             <div class="field-slider-group">
-              <h4><span>Roll Number</span> <span id="label-roll-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
+              <h4><span>Roll Number</span> <span id="label-roll-coords"
+                  style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
               <div class="form-row">
                 <div>
                   <label style="font-size: 0.75rem;">X</label>
@@ -1012,9 +1276,30 @@
               </div>
             </div>
 
-            <!-- EVENTS LINE CONTROLS (Participation Templates Only) -->
+            <!-- POSITION / PRIZE CONTROLS (Appreciation Templates Only) -->
+            <div id="group-position-line" class="field-slider-group" style="display: none;">
+              <h4><span>Position / Prize (Rank)</span> <span id="label-position-coords"
+                  style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
+              <div class="form-row">
+                <div>
+                  <label style="font-size: 0.75rem;">X</label>
+                  <input type="number" id="coord-position-x" class="form-control" oninput="updateStudioLive()">
+                </div>
+                <div>
+                  <label style="font-size: 0.75rem;">Y</label>
+                  <input type="number" id="coord-position-y" class="form-control" oninput="updateStudioLive()">
+                </div>
+                <div>
+                  <label style="font-size: 0.75rem;">Size</label>
+                  <input type="number" id="coord-position-size" class="form-control" oninput="updateStudioLive()">
+                </div>
+              </div>
+            </div>
+
+            <!-- EVENTS LINE CONTROLS (Participation & Appreciation Templates) -->
             <div id="group-events-line" class="field-slider-group">
-              <h4><span>Events Line</span> <span id="label-events-coords" style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
+              <h4><span>Events Line</span> <span id="label-events-coords"
+                  style="font-size: 0.75rem; color: var(--text-muted);"></span></h4>
               <div class="form-row">
                 <div>
                   <label style="font-size: 0.75rem;">X</label>
@@ -1032,8 +1317,16 @@
             </div>
 
             <!-- COORDINATOR NOTICE (Displayed when Coordinator Template is active) -->
-            <div id="coordinatorTemplateNotice" style="display: none; background: #fffaf0; border: 1px solid #fed7aa; padding: 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: #92400e;">
-              ℹ️ <strong>Coordinator Template:</strong> Clean institutional certificate. Only recipient details (Name, Semester, Branch, Roll Number) are printed. Events Line and Designation are omitted.
+            <div id="coordinatorTemplateNotice"
+              style="display: none; background: #fffaf0; border: 1px solid #fed7aa; padding: 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: #92400e;">
+              ℹ️ <strong>Coordinator Template:</strong> Clean institutional certificate. Only recipient details (Name,
+              Semester, Branch, Roll Number) are printed. Events Line and Designation are omitted.
+            </div>
+
+            <!-- APPRECIATION NOTICE (Displayed when Appreciation Template is active) -->
+            <div id="appreciationTemplateNotice"
+              style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: #065f46;">
+              ℹ️ <strong>Appreciation Template:</strong> Honors winner & merit achievements. Prints recipient details along with <strong>Position / Prize (maroon)</strong> and <strong>Event Name</strong>.
             </div>
 
           </div>
@@ -1041,10 +1334,13 @@
 
         <!-- TEMPLATE LIBRARY & GALLERY SECTION -->
         <div class="card" style="margin-top: 2rem;">
-          <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div class="card-header"
+            style="border: none; padding: 0; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
             <div>
-              <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700;">📚 Registered Template Library</h3>
-              <p style="color: var(--text-muted); font-size: 0.85rem;">All institutional and event certificate templates saved in database</p>
+              <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700;">📚 Registered Template
+                Library</h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">All institutional and event certificate templates
+                saved in database</p>
             </div>
             <button class="btn btn-secondary btn-sm" onclick="loadTemplateLibrary()">🔄 Refresh Library</button>
           </div>
@@ -1061,22 +1357,30 @@
       <section id="tab-credentials" style="display: none;">
         <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
           <div>
-            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Admin Security & Credentials</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Change your administrator username and password securely</p>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;">Admin Security &
+              Credentials</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Change your administrator username and password
+              securely</p>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+        <div
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
           <!-- CREDENTIALS FORM CARD -->
           <div class="card" style="box-shadow: var(--shadow-md);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--surface-border);">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--surface-border);">
               <div>
-                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Account Credentials</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem;">Update your login username or set a new password</p>
+                <h3 style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;">Account Credentials
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Update your login username or set a new
+                  password</p>
               </div>
               <div style="text-align: right;">
-                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; font-weight: 600;">ACTIVE ACCOUNT</span>
-                <span id="currentAdminBadge" class="badge badge-primary" style="font-size: 0.85rem; padding: 0.3rem 0.65rem;">admin</span>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; font-weight: 600;">ACTIVE
+                  ACCOUNT</span>
+                <span id="currentAdminBadge" class="badge badge-primary"
+                  style="font-size: 0.85rem; padding: 0.3rem 0.65rem;">admin</span>
               </div>
             </div>
 
@@ -1085,11 +1389,16 @@
               <div class="form-group" style="margin-bottom: 1.25rem;">
                 <label class="form-label" for="currentPassword">
                   Current Password <span style="color: var(--danger);">*</span>
-                  <span style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Required to confirm your identity)</span>
+                  <span
+                    style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Required
+                    to confirm your identity)</span>
                 </label>
                 <div class="password-input-group">
-                  <input type="password" id="currentPassword" class="form-control" placeholder="Enter your current password" required autocomplete="current-password">
-                  <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('currentPassword', this)" title="Toggle password visibility">👁️</button>
+                  <input type="password" id="currentPassword" class="form-control"
+                    placeholder="Enter your current password" required autocomplete="current-password">
+                  <button type="button" class="password-toggle-btn"
+                    onclick="togglePasswordVisibility('currentPassword', this)"
+                    title="Toggle password visibility">👁️</button>
                 </div>
               </div>
 
@@ -1099,20 +1408,28 @@
               <div class="form-group" style="margin-bottom: 1.25rem;">
                 <label class="form-label" for="newUsername">
                   New Admin Username
-                  <span style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Optional - leave blank to keep current)</span>
+                  <span
+                    style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Optional
+                    - leave blank to keep current)</span>
                 </label>
-                <input type="text" id="newUsername" class="form-control" placeholder="Enter new admin username" autocomplete="username">
+                <input type="text" id="newUsername" class="form-control" placeholder="Enter new admin username"
+                  autocomplete="username">
               </div>
 
               <!-- NEW PASSWORD -->
               <div class="form-group" style="margin-bottom: 1.25rem;">
                 <label class="form-label" for="newPassword">
                   New Password
-                  <span style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Min. 6 characters - leave blank to keep current)</span>
+                  <span
+                    style="font-weight: normal; color: var(--text-muted); font-size: 0.775rem; margin-left: 0.4rem;">(Min.
+                    6 characters - leave blank to keep current)</span>
                 </label>
                 <div class="password-input-group">
-                  <input type="password" id="newPassword" class="form-control" placeholder="Enter new password" autocomplete="new-password" minlength="6">
-                  <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('newPassword', this)" title="Toggle password visibility">👁️</button>
+                  <input type="password" id="newPassword" class="form-control" placeholder="Enter new password"
+                    autocomplete="new-password" minlength="6">
+                  <button type="button" class="password-toggle-btn"
+                    onclick="togglePasswordVisibility('newPassword', this)"
+                    title="Toggle password visibility">👁️</button>
                 </div>
               </div>
 
@@ -1120,17 +1437,23 @@
               <div class="form-group" style="margin-bottom: 1.5rem;">
                 <label class="form-label" for="confirmNewPassword">Confirm New Password</label>
                 <div class="password-input-group">
-                  <input type="password" id="confirmNewPassword" class="form-control" placeholder="Re-enter new password" autocomplete="new-password">
-                  <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('confirmNewPassword', this)" title="Toggle password visibility">👁️</button>
+                  <input type="password" id="confirmNewPassword" class="form-control"
+                    placeholder="Re-enter new password" autocomplete="new-password">
+                  <button type="button" class="password-toggle-btn"
+                    onclick="togglePasswordVisibility('confirmNewPassword', this)"
+                    title="Toggle password visibility">👁️</button>
                 </div>
               </div>
 
               <!-- ALERT BOX -->
-              <div id="credentialsAlertBox" style="display: none; margin-bottom: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500;"></div>
+              <div id="credentialsAlertBox"
+                style="display: none; margin-bottom: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500;">
+              </div>
 
               <div style="display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center;">
                 <button type="button" class="btn btn-secondary" onclick="resetCredentialsForm()">Clear</button>
-                <button type="submit" id="saveCredentialsBtn" class="btn btn-primary" style="font-weight: 700; padding: 0.7rem 1.5rem;">
+                <button type="submit" id="saveCredentialsBtn" class="btn btn-primary"
+                  style="font-weight: 700; padding: 0.7rem 1.5rem;">
                   💾 Save New Credentials
                 </button>
               </div>
@@ -1138,24 +1461,33 @@
           </div>
 
           <!-- SECURITY GUIDELINES CARD -->
-          <div class="card" style="background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1px solid var(--surface-border);">
-            <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+          <div class="card"
+            style="background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1px solid var(--surface-border);">
+            <h3
+              style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
               🛡️ Security & Authentication
             </h3>
-            <ul style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.7; padding-left: 1.25rem; margin-bottom: 1.5rem;">
+            <ul
+              style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.7; padding-left: 1.25rem; margin-bottom: 1.5rem;">
               <li>Always protect your admin credentials and do not share them publicly.</li>
-              <li>Passwords are cryptographically salted and hashed using <strong>bcrypt</strong> before being stored in MongoDB Atlas.</li>
-              <li>When you update credentials, your current session JWT token automatically updates seamlessly so you don't need to log in again.</li>
+              <li>Passwords are cryptographically salted and hashed using <strong>bcrypt</strong> before being stored in
+                MongoDB Atlas.</li>
+              <li>When you update credentials, your current session JWT token automatically updates seamlessly so you
+                don't need to log in again.</li>
               <li>Once changed, previous passwords will be immediately invalidated.</li>
             </ul>
 
-            <div style="padding: 1.1rem; background: var(--surface-subtle); border: 1px solid var(--surface-border); border-radius: var(--radius-sm);">
+            <div
+              style="padding: 1.1rem; background: var(--surface-subtle); border: 1px solid var(--surface-border); border-radius: var(--radius-sm);">
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                <span style="display: inline-block; width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></span>
-                <p style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">Cloud Database Active</p>
+                <span
+                  style="display: inline-block; width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></span>
+                <p style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">Cloud
+                  Database Active</p>
               </div>
               <p style="font-size: 0.875rem; color: var(--text-main); font-weight: 600;">MongoDB Atlas Cluster</p>
-              <p style="font-size: 0.775rem; color: var(--text-muted); margin-top: 0.25rem;">All credential updates take effect immediately across all connected instances.</p>
+              <p style="font-size: 0.775rem; color: var(--text-muted); margin-top: 0.25rem;">All credential updates take
+                effect immediately across all connected instances.</p>
             </div>
           </div>
         </div>
@@ -1174,7 +1506,7 @@
       </div>
       <div class="modal-body" style="background: #fff; padding: 1.5rem; color: var(--text-main); align-items: stretch;">
         <input type="hidden" id="editStudentId">
-        
+
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="editRoll">Roll Number</label>
@@ -1204,7 +1536,8 @@
 
         <div class="form-group">
           <label class="form-label">Participated Events (Check to assign)</label>
-          <div id="editEventsList" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); max-height: 180px; overflow-y: auto;">
+          <div id="editEventsList"
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--surface-subtle); padding: 1rem; border-radius: var(--radius-sm); max-height: 180px; overflow-y: auto;">
           </div>
         </div>
 
@@ -1225,18 +1558,23 @@
             <h3 id="adminModalCertTitle" class="modal-title">Certificate Preview</h3>
             <span id="adminModalRoleBadge" class="badge badge-primary">Student</span>
           </div>
-          <p id="adminModalCertSubtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Institutional Main Template</p>
+          <p id="adminModalCertSubtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Institutional Main Template</p>
         </div>
         <button class="modal-close" onclick="closeAdminCertModal()">&times;</button>
       </div>
 
-      <div class="modal-body" style="background: #0f172a; padding: 1.5rem; display: flex; justify-content: center; align-items: center; overflow-x: auto;">
-        <div class="canvas-wrapper" style="box-shadow: 0 15px 35px rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; background: #fff;">
-          <canvas id="adminCertCanvas" width="1024" height="682" style="max-width: 100%; height: auto; display: block;"></canvas>
+      <div class="modal-body"
+        style="background: #0f172a; padding: 1.5rem; display: flex; justify-content: center; align-items: center; overflow-x: auto;">
+        <div class="canvas-wrapper"
+          style="box-shadow: 0 15px 35px rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; background: #fff;">
+          <canvas id="adminCertCanvas" width="1024" height="682"
+            style="max-width: 100%; height: auto; display: block;"></canvas>
         </div>
       </div>
 
-      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div class="modal-footer"
+        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
         <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
           <span>🏛️</span> Rendered with Official Main Template
         </div>
@@ -1263,10 +1601,12 @@
         <button class="modal-close" onclick="closeQuickEventModal()">&times;</button>
       </div>
       <form onsubmit="handleQuickCreateEvent(event)">
-        <div class="modal-body" style="background: #fff; padding: 1.5rem; color: var(--text-main); align-items: stretch;">
+        <div class="modal-body"
+          style="background: #fff; padding: 1.5rem; color: var(--text-main); align-items: stretch;">
           <div class="form-group">
             <label class="form-label" for="quickEventName">Event Name *</label>
-            <input type="text" id="quickEventName" class="form-control" placeholder="e.g. AI & Robotics Symposium 2026" required autofocus>
+            <input type="text" id="quickEventName" class="form-control" placeholder="e.g. AI & Robotics Symposium 2026"
+              required autofocus>
           </div>
 
           <div class="form-row">
@@ -1276,17 +1616,21 @@
             </div>
             <div class="form-group">
               <label class="form-label" for="quickEventCategory">Category</label>
-              <input type="text" id="quickEventCategory" class="form-control" placeholder="Separate Event" value="Separate Event">
+              <input type="text" id="quickEventCategory" class="form-control" placeholder="Separate Event"
+                value="Separate Event">
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="quickEventDesc">Description (Optional)</label>
-            <textarea id="quickEventDesc" class="form-control" rows="2" placeholder="Details about this separate event"></textarea>
+            <textarea id="quickEventDesc" class="form-control" rows="2"
+              placeholder="Details about this separate event"></textarea>
           </div>
 
-          <div style="background: var(--surface-subtle); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); font-size: 0.8rem; color: var(--text-muted);">
-            ℹ️ This event will automatically use the <strong>Institutional Main Template</strong> for all participant and coordinator certificates.
+          <div
+            style="background: var(--surface-subtle); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); font-size: 0.8rem; color: var(--text-muted);">
+            ℹ️ This event will automatically use the <strong>Institutional Main Template</strong> for all participant
+            and coordinator certificates.
           </div>
         </div>
         <div class="modal-footer">
@@ -1306,7 +1650,8 @@
       </div>
       <form onsubmit="handleUpdateEvent(event)">
         <input type="hidden" id="editEventId">
-        <div class="modal-body" style="background: #fff; padding: 1.5rem; color: var(--text-main); align-items: stretch;">
+        <div class="modal-body"
+          style="background: #fff; padding: 1.5rem; color: var(--text-main); align-items: stretch;">
           <div class="form-group">
             <label class="form-label" for="editEventName">Event Name *</label>
             <input type="text" id="editEventName" class="form-control" required>
@@ -1330,7 +1675,8 @@
 
           <!-- TEMPLATE SELECTION FOR EVENT -->
           <div class="form-group" style="margin-bottom: 0.75rem;">
-            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+            <label
+              style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
               <input type="checkbox" id="editEventUseMainTemplate" onchange="toggleEditEventTemplateConfig()">
               <span>🏛️ Use Institutional Main Templates</span>
             </label>
@@ -1339,17 +1685,26 @@
             </small>
           </div>
 
-          <div id="editEventCustomTemplatesGroup" style="margin-bottom: 0.5rem; background: var(--surface-subtle); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+          <div id="editEventCustomTemplatesGroup"
+            style="margin-bottom: 0.5rem; background: var(--surface-subtle); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
             <div class="form-group" style="margin-bottom: 0.75rem;">
-              <label class="form-label" for="editEventParticipantTemplate" style="font-size: 0.8rem;">Participant Template</label>
+              <label class="form-label" for="editEventParticipantTemplate" style="font-size: 0.8rem;">Participant
+                Template</label>
               <select id="editEventParticipantTemplate" class="form-control" style="font-size: 0.85rem;">
                 <option value="">-- Active Institutional Participation Template --</option>
               </select>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="editEventCoordinatorTemplate" style="font-size: 0.8rem;">Coordinator Template</label>
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+              <label class="form-label" for="editEventCoordinatorTemplate" style="font-size: 0.8rem;">Coordinator
+                Template</label>
               <select id="editEventCoordinatorTemplate" class="form-control" style="font-size: 0.85rem;">
                 <option value="">-- Active Institutional Coordination Template --</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="editEventAppreciationTemplate" style="font-size: 0.8rem;">Appreciation / Winner Template</label>
+              <select id="editEventAppreciationTemplate" class="form-control" style="font-size: 0.85rem;">
+                <option value="">-- Active Institutional Appreciation Template --</option>
               </select>
             </div>
           </div>

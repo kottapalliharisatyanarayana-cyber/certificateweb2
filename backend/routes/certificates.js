@@ -50,14 +50,32 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
       });
     }
 
-    // Determine if recipient is coordinator
+    // Determine recipient certificate category
     const isCoord = (participation.role || '').toLowerCase().includes('coordinator')
       || participation.certificate_type === 'Coordination';
+
+    const isApprec = participation.certificate_type === 'Appreciation'
+      || Boolean(participation.position)
+      || (participation.role || '').toLowerCase().includes('winner')
+      || (participation.role || '').toLowerCase().includes('runner');
 
     // Resolve the appropriate template (Event-specific or Type-specific active)
     let template = null;
 
-    if (isCoord) {
+    if (isApprec) {
+      // 1. If event has dedicated appreciation template and custom templates enabled
+      if (!event.use_main_template && event.appreciation_template) {
+        template = await Template.findById(event.appreciation_template);
+      }
+      // 2. Default active Appreciation template
+      if (!template) {
+        template = await Template.findOne({ template_type: 'appreciation', is_active: true });
+      }
+      // 3. Any Appreciation template
+      if (!template) {
+        template = await Template.findOne({ template_type: 'appreciation' });
+      }
+    } else if (isCoord) {
       // 1. If event has dedicated coordinator template and custom templates enabled
       if (!event.use_main_template && event.coordinator_template) {
         template = await Template.findById(event.coordinator_template);
@@ -108,7 +126,8 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
       .substring(0, 10)
       .toUpperCase();
 
-    const certificateId = participation.certificate_id || `SVEC-${isCoord ? 'COORD' : 'CERT'}-${certHash}`;
+    const certPrefix = isApprec ? 'APPR' : (isCoord ? 'COORD' : 'CERT');
+    const certificateId = participation.certificate_id || `SVEC-${certPrefix}-${certHash}`;
 
     res.json({
       success: true,
@@ -124,8 +143,10 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
         },
         role: participation.role || 'Student',
         isCoordinator: isCoord,
-        designation: participation.designation || (isCoord ? 'Student Coordinator' : 'Participant'),
-        certificateType: participation.certificate_type || (isCoord ? 'Appreciation' : 'Participation'),
+        isAppreciation: isApprec,
+        position: participation.position || '',
+        designation: participation.designation || (isApprec ? (participation.position || 'Winner') : (isCoord ? 'Student Coordinator' : 'Participant')),
+        certificateType: participation.certificate_type || (isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : 'Participation')),
         event: {
           id: event._id,
           name: event.event_name,
@@ -138,7 +159,7 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
         template: {
           id: template._id,
           name: template.template_name,
-          type: template.template_type || (isCoord ? 'coordination' : 'participation'),
+          type: template.template_type || (isApprec ? 'appreciation' : (isCoord ? 'coordination' : 'participation')),
           file: resolveTemplateFile(template.template_file),
           config: template.fields_config
         },
@@ -174,15 +195,21 @@ router.get('/all-data/:roll_no', async (req, res) => {
     }).populate('event');
 
     const validParticipations = participations.filter(p => p.event != null);
-    const validEvents = validParticipations.map(p => ({
-      id: p.event._id,
-      name: p.event.event_name,
-      date: p.event.event_date || '',
-      role: p.role || 'Student',
-      isCoordinator: (p.role || '').toLowerCase().includes('coordinator'),
-      designation: p.designation || ((p.role || '').toLowerCase().includes('coordinator') ? 'Student Coordinator' : 'Participant'),
-      certificateType: p.certificate_type || ((p.role || '').toLowerCase().includes('coordinator') ? 'Appreciation' : 'Participation')
-    }));
+    const validEvents = validParticipations.map(p => {
+      const isCoord = (p.role || '').toLowerCase().includes('coordinator');
+      const isApprec = p.certificate_type === 'Appreciation' || Boolean(p.position) || (p.role || '').toLowerCase().includes('winner');
+      return {
+        id: p.event._id,
+        name: p.event.event_name,
+        date: p.event.event_date || '',
+        role: p.role || 'Student',
+        isCoordinator: isCoord,
+        isAppreciation: isApprec,
+        position: p.position || '',
+        designation: p.designation || (isApprec ? (p.position || 'Winner') : (isCoord ? 'Student Coordinator' : 'Participant')),
+        certificateType: p.certificate_type || (isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : 'Participation'))
+      };
+    });
 
     let template = await Template.findOne({ is_active: true });
     if (!template) template = await Template.findOne();

@@ -41,6 +41,11 @@ const EventSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Template',
     default: null
+  },
+  appreciation_template: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Template',
+    default: null
   }
 }, {
   timestamps: true

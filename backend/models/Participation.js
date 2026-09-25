@@ -19,7 +19,7 @@ const ParticipationSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['Student', 'Coordinator', 'Student Coordinator', 'Faculty Coordinator', 'Organizing Committee', 'Volunteer'],
+    enum: ['Student', 'Participant', 'Winner', 'Runner-Up', 'Coordinator', 'Student Coordinator', 'Faculty Coordinator', 'Organizing Committee', 'Volunteer'],
     default: 'Student',
     index: true
   },
@@ -27,6 +27,11 @@ const ParticipationSchema = new mongoose.Schema({
     type: String,
     enum: ['Participation', 'Appreciation', 'Coordination', 'Merit'],
     default: 'Participation'
+  },
+  position: {
+    type: String,
+    trim: true,
+    default: ''
   },
   designation: {
     type: String,

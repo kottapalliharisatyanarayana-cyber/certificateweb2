@@ -520,3 +520,85 @@ workflow:
 The goal is to eliminate manual certificate creation and provide
 participants with a fast, reliable, and easy way to access their
 participation certificates online.
+
+---
+
+## 📁 Organized Project Structure
+
+```text
+CERTIFICATEWEB2/
+├── frontend/                     # Client-side user interface
+│   ├── index.html                # Student Search & Certificate Retrieval Portal
+│   ├── admin.html                # Administrator Management Dashboard
+│   ├── calibrate_appreciation.html # Coordinate calibration utility
+│   ├── css/
+│   │   └── style.css             # Design tokens, typography, responsive styling
+│   ├── js/
+│   │   ├── admin.js              # Admin Portal controller & Template Studio
+│   │   ├── app.js                # Public student portal & rendering engine
+│   │   └── libs/                 # Client libraries (jsPDF)
+│   └── templates/                # Institutional certificate template images
+│       ├── svec_template.jpg     # Participation Certificate Template
+│       ├── svec_coordinator_template.jpg # Coordinator Certificate Template
+│       └── svec_appreciation_template.jpg # Appreciation / Merit Template
+│
+├── backend/                      # Express REST API & Database engine
+│   ├── app.js                    # Main server application & middleware
+│   ├── db.js                     # MongoDB Atlas connection & auto-seeding
+│   ├── models/                   # Mongoose schemas
+│   │   ├── Student.js            # Student records
+│   │   ├── Event.js              # Events with template associations
+│   │   ├── Participation.js      # Participation & award records
+│   │   ├── Template.js           # Certificate templates & coordinates
+│   │   └── Admin.js              # Admin credentials
+│   ├── routes/                   # API route handlers
+│   │   ├── auth.js               # Admin authentication & credentials
+│   │   ├── students.js           # Student queries & exports
+│   │   ├── events.js             # Event issuance & batch processing
+│   │   ├── upload.js             # Excel & PDF parser endpoints
+│   │   ├── templates.js          # Template Studio coordinate management
+│   │   └── certificates.js       # Dynamic canvas & certificate delivery
+│   └── utils/                    # Parsing and generation utilities
+│       ├── excelParser.js        # Multi-role Excel parser
+│       ├── sampleGenerator.js    # Excel sample templates generator
+│       ├── pdfParser.js          # PDF extraction utility
+│       ├── samplePdfGenerator.js # PDF template generator
+│       └── authMiddleware.js     # JWT verification middleware
+│
+├── deployment/                   # Cloud hosting & Container configurations
+│   ├── vercel.json               # Vercel serverless deployment specification
+│   ├── render.yaml               # Render web service blueprint
+│   ├── Dockerfile                # Production multi-stage Docker build
+│   ├── .dockerignore             # Docker build ignores
+│   └── DEPLOYMENT.md             # Complete step-by-step deployment guide
+│
+├── api/                          # Vercel serverless function entrypoint
+│   └── index.js                  # Points to backend/app.js
+│
+├── scripts/                      # Utility and coordinate detection scripts
+├── uploads/                      # Uploaded custom certificate templates
+├── package.json                  # Node dependencies & startup scripts
+├── .env.example                  # Environment variable reference
+├── .gitignore                    # Git tracking ignore rules
+└── .gitattributes                # Line ending and binary file configuration
+```
+
+---
+
+## 🚀 Quickstart
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment (.env)
+# Create .env from .env.example with your MongoDB Atlas URI
+
+# 3. Start the application
+npm start
+```
+
+Access the application:
+- **Student Portal**: `http://localhost:3001/`
+- **Admin Dashboard**: `http://localhost:3001/admin`
+- **System Health**: `http://localhost:3001/api/health`

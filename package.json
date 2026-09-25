@@ -2,11 +2,11 @@
   "name": "certificateweb2",
   "version": "1.0.0",
   "description": "Automatic Certificate Generation Web System with MongoDB Atlas and Excel Upload",
-  "main": "server/app.js",
+  "main": "backend/app.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server/app.js",
-    "dev": "node server/app.js"
+    "start": "node backend/app.js",
+    "dev": "node backend/app.js"
   },
   "engines": {
     "node": ">=18.0.0"

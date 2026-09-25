@@ -97,17 +97,20 @@ router.get('/active', async (req, res) => {
       });
     }
 
-    // Also fetch both active templates for dual-mode studio
+    // Also fetch active templates for studio
     const partTpl = await Template.findOne({ template_type: 'participation', is_active: true })
       || await Template.findOne({ template_type: 'participation' });
     const coordTpl = await Template.findOne({ template_type: 'coordination', is_active: true })
       || await Template.findOne({ template_type: 'coordination' });
+    const apprecTpl = await Template.findOne({ template_type: 'appreciation', is_active: true })
+      || await Template.findOne({ template_type: 'appreciation' });
 
     res.json({
       success: true,
       template: formatTemplateData(template),
       participationTemplate: formatTemplateData(partTpl),
-      coordinationTemplate: formatTemplateData(coordTpl)
+      coordinationTemplate: formatTemplateData(coordTpl),
+      appreciationTemplate: formatTemplateData(apprecTpl)
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -130,6 +133,10 @@ router.get('/', authMiddleware, async (req, res) => {
       }
       if (e.coordinator_template) {
         const id = e.coordinator_template.toString();
+        usageMap[id] = (usageMap[id] || 0) + 1;
+      }
+      if (e.appreciation_template) {
+        const id = e.appreciation_template.toString();
         usageMap[id] = (usageMap[id] || 0) + 1;
       }
     });
@@ -258,9 +265,11 @@ router.post('/upload', authMiddleware, upload.single('template_image'), async (r
     if (req.body.event_id) {
       const event = await Event.findById(req.body.event_id);
       if (event) {
-        const targetRole = req.body.event_role_target || (assignedType === 'coordination' ? 'coordination' : 'participation');
+        const targetRole = req.body.event_role_target || assignedType;
         if (targetRole === 'coordination') {
           event.coordinator_template = newTemplate._id;
+        } else if (targetRole === 'appreciation') {
+          event.appreciation_template = newTemplate._id;
         } else {
           event.template = newTemplate._id;
         }
@@ -358,6 +367,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     // Unbind from any events that reference it
     await Event.updateMany({ template: template._id }, { $set: { template: null } });
     await Event.updateMany({ coordinator_template: template._id }, { $set: { coordinator_template: null } });
+    await Event.updateMany({ appreciation_template: template._id }, { $set: { appreciation_template: null } });
 
     await Template.findByIdAndDelete(req.params.id);
 

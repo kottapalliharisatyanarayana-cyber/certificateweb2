@@ -51,6 +51,7 @@ router.get('/search/:roll_no', async (req, res) => {
       participationsCount: validParticipations.length,
       events: validParticipations.map(p => {
         const isCoord = (p.role || '').toLowerCase().includes('coordinator');
+        const isApprec = p.certificate_type === 'Appreciation' || Boolean(p.position) || (p.role || '').toLowerCase().includes('winner');
         return {
           participationId: p._id,
           eventId: p.event._id,
@@ -60,8 +61,10 @@ router.get('/search/:roll_no', async (req, res) => {
           category: p.event.category || 'Separate Event',
           role: p.role || 'Student',
           isCoordinator: isCoord,
-          designation: p.designation || (isCoord ? 'Student Coordinator' : 'Participant'),
-          certificateType: p.certificate_type || (isCoord ? 'Appreciation' : 'Participation'),
+          isAppreciation: isApprec,
+          position: p.position || '',
+          designation: p.designation || (isApprec ? (p.position || 'Winner') : (isCoord ? 'Student Coordinator' : 'Participant')),
+          certificateType: p.certificate_type || (isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : 'Participation')),
           certificateId: p.certificate_id || '',
           issueDate: p.issue_date || (p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A')
         };
@@ -166,7 +169,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // POST /api/students (Admin: Manual Student Entry)
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { roll_no, name, email, semester, branch, eventIds } = req.body;
+    const { roll_no, name, email, semester, branch, eventIds, role, position, certificate_type, designation } = req.body;
 
     if (!roll_no || !name) {
       return res.status(400).json({
@@ -198,10 +201,18 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // Update participations if eventIds are passed
     if (Array.isArray(eventIds)) {
+      const partPayload = {
+        participated: true,
+        role: role || (position ? 'Winner' : 'Student'),
+        position: position || '',
+        certificate_type: certificate_type || (position ? 'Appreciation' : 'Participation'),
+        designation: designation || position || ''
+      };
+
       for (const evtId of eventIds) {
         await Participation.findOneAndUpdate(
           { student: student._id, event: evtId },
-          { participated: true },
+          partPayload,
           { upsert: true, new: true }
         );
       }

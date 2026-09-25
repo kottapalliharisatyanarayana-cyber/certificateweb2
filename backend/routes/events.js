@@ -20,6 +20,7 @@ router.get('/', async (req, res) => {
     const events = await Event.find()
       .populate('template', 'template_name template_file template_type')
       .populate('coordinator_template', 'template_name template_file template_type')
+      .populate('appreciation_template', 'template_name template_file template_type')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -29,7 +30,7 @@ router.get('/', async (req, res) => {
       { $match: { event: { $in: eventIds }, participated: true } },
       {
         $group: {
-          _id: { event: '$event', role: '$role' },
+          _id: { event: '$event', role: '$role', certType: '$certificate_type' },
           count: { $sum: 1 }
         }
       }
@@ -39,24 +40,29 @@ router.get('/', async (req, res) => {
     counts.forEach(c => {
       const eId = c._id.event.toString();
       if (!statsMap[eId]) {
-        statsMap[eId] = { total: 0, students: 0, coordinators: 0 };
+        statsMap[eId] = { total: 0, students: 0, coordinators: 0, appreciation: 0 };
       }
       statsMap[eId].total += c.count;
       const role = (c._id.role || 'Student').toLowerCase();
-      if (role.includes('coordinator')) {
+      const certType = (c._id.certType || '').toLowerCase();
+      if (role.includes('coordinator') || certType === 'coordination') {
         statsMap[eId].coordinators += c.count;
+      } else if (certType === 'appreciation' || role.includes('winner') || role.includes('runner')) {
+        statsMap[eId].appreciation += c.count;
+        statsMap[eId].students += c.count;
       } else {
         statsMap[eId].students += c.count;
       }
     });
 
     const enrichedEvents = events.map(e => {
-      const s = statsMap[e._id.toString()] || { total: 0, students: 0, coordinators: 0 };
+      const s = statsMap[e._id.toString()] || { total: 0, students: 0, coordinators: 0, appreciation: 0 };
       return {
         ...e,
         participantCount: s.total,
         studentsCount: s.students,
-        coordinatorsCount: s.coordinators
+        coordinatorsCount: s.coordinators,
+        appreciationCount: s.appreciation
       };
     });
 
@@ -75,7 +81,7 @@ router.get('/', async (req, res) => {
 // POST /api/events (Admin: Create Event with template assignments)
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { event_name, event_date, description, template, coordinator_template, use_main_template } = req.body;
+    const { event_name, event_date, description, template, coordinator_template, appreciation_template, use_main_template } = req.body;
     if (!event_name || !event_name.trim()) {
       return res.status(400).json({
         success: false,
@@ -94,7 +100,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const useMain = use_main_template !== undefined 
       ? Boolean(use_main_template) 
-      : (!template && !coordinator_template);
+      : (!template && !coordinator_template && !appreciation_template);
 
     const newEvent = await Event.create({
       event_name: trimmedName,
@@ -102,12 +108,14 @@ router.post('/', authMiddleware, async (req, res) => {
       description: (description || '').trim(),
       use_main_template: useMain,
       template: template || null,
-      coordinator_template: coordinator_template || null
+      coordinator_template: coordinator_template || null,
+      appreciation_template: appreciation_template || null
     });
 
     const populatedEvent = await Event.findById(newEvent._id)
       .populate('template', 'template_name template_file template_type')
-      .populate('coordinator_template', 'template_name template_file template_type');
+      .populate('coordinator_template', 'template_name template_file template_type')
+      .populate('appreciation_template', 'template_name template_file template_type');
 
     res.status(201).json({
       success: true,
@@ -125,7 +133,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // PUT /api/events/:id (Admin: Update Event & template assignments)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { event_name, event_date, description, template, coordinator_template, use_main_template } = req.body;
+    const { event_name, event_date, description, template, coordinator_template, appreciation_template, use_main_template } = req.body;
     const event = await Event.findById(req.params.id);
 
     if (!event) {
@@ -147,12 +155,16 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (coordinator_template !== undefined) {
       event.coordinator_template = coordinator_template ? coordinator_template : null;
     }
+    if (appreciation_template !== undefined) {
+      event.appreciation_template = appreciation_template ? appreciation_template : null;
+    }
 
     await event.save();
 
     const populatedEvent = await Event.findById(event._id)
       .populate('template', 'template_name template_file template_type')
-      .populate('coordinator_template', 'template_name template_file template_type');
+      .populate('coordinator_template', 'template_name template_file template_type')
+      .populate('appreciation_template', 'template_name template_file template_type');
 
     res.json({
       success: true,
@@ -211,7 +223,8 @@ router.get('/:id/certificates', authMiddleware, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id)
       .populate('template', 'template_name template_file template_type')
-      .populate('coordinator_template', 'template_name template_file template_type');
+      .populate('coordinator_template', 'template_name template_file template_type')
+      .populate('appreciation_template', 'template_name template_file template_type');
     if (!event) {
       return res.status(404).json({ success: false, message: 'Event not found.' });
     }
@@ -225,12 +238,21 @@ router.get('/:id/certificates', authMiddleware, async (req, res) => {
 
     let studentsCount = 0;
     let coordinatorsCount = 0;
+    let appreciationCount = 0;
 
     const formattedCerts = validCerts.map(p => {
       const role = p.role || 'Student';
-      const isCoord = role.toLowerCase().includes('coordinator');
-      if (isCoord) coordinatorsCount++;
-      else studentsCount++;
+      const isCoord = role.toLowerCase().includes('coordinator') || p.certificate_type === 'Coordination';
+      const isApprec = p.certificate_type === 'Appreciation' || Boolean(p.position) || role.toLowerCase().includes('winner') || role.toLowerCase().includes('runner');
+
+      if (isCoord) {
+        coordinatorsCount++;
+      } else if (isApprec) {
+        appreciationCount++;
+        studentsCount++;
+      } else {
+        studentsCount++;
+      }
 
       // Generate or reuse certificate ID
       let certId = p.certificate_id;
@@ -241,7 +263,8 @@ router.get('/:id/certificates', authMiddleware, async (req, res) => {
           .digest('hex')
           .substring(0, 10)
           .toUpperCase();
-        certId = `SVEC-${isCoord ? 'COORD' : 'PART'}-${hash}`;
+        const prefix = isApprec ? 'APPR' : (isCoord ? 'COORD' : 'PART');
+        certId = `SVEC-${prefix}-${hash}`;
       }
 
       return {
@@ -256,8 +279,10 @@ router.get('/:id/certificates', authMiddleware, async (req, res) => {
         },
         role,
         isCoordinator: isCoord,
-        designation: p.designation || (isCoord ? 'Student Coordinator' : 'Participant'),
-        certificateType: p.certificate_type || (isCoord ? 'Appreciation' : 'Participation'),
+        isAppreciation: isApprec,
+        position: p.position || '',
+        designation: p.designation || (isApprec ? (p.position || 'Winner') : (isCoord ? 'Student Coordinator' : 'Participant')),
+        certificateType: p.certificate_type || (isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : 'Participation')),
         certificateId: certId,
         issueDate: p.issue_date || (p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A')
       };
@@ -284,12 +309,19 @@ router.get('/:id/certificates', authMiddleware, async (req, res) => {
           name: event.coordinator_template.template_name,
           file: event.coordinator_template.template_file,
           type: event.coordinator_template.template_type
+        } : null,
+        appreciationTemplate: event.appreciation_template ? {
+          id: event.appreciation_template._id,
+          name: event.appreciation_template.template_name,
+          file: event.appreciation_template.template_file,
+          type: event.appreciation_template.template_type
         } : null
       },
       counts: {
         total: formattedCerts.length,
         students: studentsCount,
-        coordinators: coordinatorsCount
+        coordinators: coordinatorsCount,
+        appreciation: appreciationCount
       },
       certificates: formattedCerts
     });
@@ -304,7 +336,7 @@ router.get('/:id/certificates', authMiddleware, async (req, res) => {
 // POST /api/events/:id/issue-certificate (Admin: Issue certificate for student or coordinator)
 router.post('/:id/issue-certificate', authMiddleware, async (req, res) => {
   try {
-    const { roll_no, name, email, semester, branch, role, designation, certificate_type } = req.body;
+    const { roll_no, name, email, semester, branch, role, designation, position, certificate_type } = req.body;
     const event = await Event.findById(req.params.id);
 
     if (!event) {
@@ -320,7 +352,9 @@ router.post('/:id/issue-certificate', authMiddleware, async (req, res) => {
 
     const rollUpper = roll_no.trim().toUpperCase();
     const assignedRole = role || 'Student';
-    const isCoord = assignedRole.toLowerCase().includes('coordinator');
+    const isCoord = assignedRole.toLowerCase().includes('coordinator') || certificate_type === 'Coordination';
+    const isApprec = certificate_type === 'Appreciation' || Boolean(position) || assignedRole.toLowerCase().includes('winner') || assignedRole.toLowerCase().includes('runner');
+    const assignedPosition = (position && position.trim()) ? position.trim() : (isApprec ? (designation && designation.trim() ? designation.trim() : 'Winner') : '');
 
     // 1. Find or create student
     let student = await Student.findOne({ roll_no: rollUpper });
@@ -348,9 +382,12 @@ router.post('/:id/issue-certificate', authMiddleware, async (req, res) => {
       .substring(0, 10)
       .toUpperCase();
 
-    const certId = `SVEC-${isCoord ? 'COORD' : 'PART'}-${hash}`;
-    const defaultDesignation = isCoord ? (designation && designation.trim() ? designation.trim() : 'Student Coordinator') : 'Participant';
-    const defaultCertType = certificate_type || (isCoord ? 'Appreciation' : 'Participation');
+    const prefix = isApprec ? 'APPR' : (isCoord ? 'COORD' : 'PART');
+    const certId = `SVEC-${prefix}-${hash}`;
+    const defaultDesignation = isCoord
+      ? (designation && designation.trim() ? designation.trim() : 'Student Coordinator')
+      : (isApprec ? (assignedPosition || 'Winner') : 'Participant');
+    const defaultCertType = certificate_type || (isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : 'Participation'));
     const issueDateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     // 3. Create or update participation
@@ -363,6 +400,7 @@ router.post('/:id/issue-certificate', authMiddleware, async (req, res) => {
       participation.participated = true;
       participation.role = assignedRole;
       participation.designation = defaultDesignation;
+      participation.position = assignedPosition;
       participation.certificate_type = defaultCertType;
       if (!participation.certificate_id) participation.certificate_id = certId;
       if (!participation.issue_date) participation.issue_date = issueDateStr;
@@ -374,6 +412,7 @@ router.post('/:id/issue-certificate', authMiddleware, async (req, res) => {
         participated: true,
         role: assignedRole,
         designation: defaultDesignation,
+        position: assignedPosition,
         certificate_type: defaultCertType,
         certificate_id: certId,
         issue_date: issueDateStr
@@ -395,6 +434,8 @@ router.post('/:id/issue-certificate', authMiddleware, async (req, res) => {
         },
         role: assignedRole,
         isCoordinator: isCoord,
+        isAppreciation: isApprec,
+        position: participation.position || '',
         designation: defaultDesignation,
         certificateType: defaultCertType,
         certificateId: participation.certificate_id,
