@@ -62,8 +62,22 @@ router.get('/search/:roll_no', async (req, res) => {
           role: p.role || 'Student',
           isCoordinator: isCoord,
           isAppreciation: isApprec,
-          position: p.position || '',
-          designation: p.designation || (isApprec ? (p.position || 'Winner') : (isCoord ? 'Student Coordinator' : 'Participant')),
+          position: isApprec
+            ? (p.position && !['participant', 'student'].includes(p.position.toLowerCase())
+                ? p.position
+                : (p.designation && !['participant', 'student', 'student coordinator'].includes(p.designation.toLowerCase())
+                    ? p.designation
+                    : (p.role && !['participant', 'student', 'coordinator'].includes(p.role.toLowerCase())
+                        ? p.role
+                        : 'Winner')))
+            : (p.position || ''),
+          designation: isApprec
+            ? (p.position && !['participant', 'student'].includes(p.position.toLowerCase())
+                ? p.position
+                : (p.designation && !['participant', 'student', 'student coordinator'].includes(p.designation.toLowerCase())
+                    ? p.designation
+                    : 'Winner'))
+            : (p.designation || (isCoord ? 'Student Coordinator' : 'Participant')),
           certificateType: p.certificate_type || (isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : 'Participation')),
           certificateId: p.certificate_id || '',
           issueDate: p.issue_date || (p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A')

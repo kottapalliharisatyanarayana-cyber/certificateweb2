@@ -144,8 +144,22 @@ router.get('/data/:roll_no/:eventId', async (req, res) => {
         role: participation.role || 'Student',
         isCoordinator: isCoord,
         isAppreciation: isApprec,
-        position: participation.position || '',
-        designation: participation.designation || (isApprec ? (participation.position || 'Winner') : (isCoord ? 'Student Coordinator' : 'Participant')),
+        position: isApprec
+          ? (participation.position && !['participant', 'student'].includes(participation.position.toLowerCase())
+              ? participation.position
+              : (participation.designation && !['participant', 'student', 'student coordinator'].includes(participation.designation.toLowerCase())
+                  ? participation.designation
+                  : (participation.role && !['participant', 'student', 'coordinator'].includes(participation.role.toLowerCase())
+                      ? participation.role
+                      : 'Winner')))
+          : (participation.position || ''),
+        designation: isApprec
+          ? (participation.position && !['participant', 'student'].includes(participation.position.toLowerCase())
+              ? participation.position
+              : (participation.designation && !['participant', 'student', 'student coordinator'].includes(participation.designation.toLowerCase())
+                  ? participation.designation
+                  : 'Winner'))
+          : (participation.designation || (isCoord ? 'Student Coordinator' : 'Participant')),
         certificateType: participation.certificate_type || (isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : 'Participation')),
         event: {
           id: event._id,

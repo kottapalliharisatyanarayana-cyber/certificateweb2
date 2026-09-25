@@ -469,9 +469,18 @@ async function renderCertificateCanvas(cert, eventDisplayString) {
 
   // Appreciation Position Field
   if (isDedicatedApprecTemplate || isApprec) {
-    const positionText = cert.position || cert.designation || 'Winner';
+    let positionText = (cert.position || '').trim();
+    if (!positionText || positionText.toLowerCase() === 'participant' || positionText.toLowerCase() === 'student') {
+      if (cert.designation && !['participant', 'student', 'student coordinator'].includes(cert.designation.toLowerCase())) {
+        positionText = cert.designation.trim();
+      } else if (cert.role && !['participant', 'student', 'coordinator'].includes(cert.role.toLowerCase())) {
+        positionText = cert.role.trim();
+      } else {
+        positionText = 'Winner';
+      }
+    }
     if (cfg.position) {
-      drawFieldText(positionText, cfg.position, 'Plus Jakarta Sans, sans-serif', 130);
+      drawFieldText(positionText, cfg.position, 'Plus Jakarta Sans, sans-serif', 150);
     }
   }
 

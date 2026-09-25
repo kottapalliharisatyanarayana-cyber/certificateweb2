@@ -3070,7 +3070,16 @@ async function drawAdminCertificateCanvas(cert) {
 
   // Appreciation Position Field
   if (isApprec || isDedicatedApprecTemplate) {
-    const positionText = cert.position || cert.designation || 'Winner';
+    let positionText = (cert.position || '').trim();
+    if (!positionText || positionText.toLowerCase() === 'participant' || positionText.toLowerCase() === 'student') {
+      if (cert.designation && !['participant', 'student', 'student coordinator'].includes(cert.designation.toLowerCase())) {
+        positionText = cert.designation.trim();
+      } else if (cert.role && !['participant', 'student', 'coordinator'].includes(cert.role.toLowerCase())) {
+        positionText = cert.role.trim();
+      } else {
+        positionText = 'Winner';
+      }
+    }
     ctx.font = `bold ${posSize}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = posColor;
     ctx.fillText(positionText, posX, posY);
