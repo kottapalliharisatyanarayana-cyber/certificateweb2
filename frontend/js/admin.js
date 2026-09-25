@@ -1936,10 +1936,11 @@ function renderEventCertificatesTable() {
 
     let roleBadge = `<span class="badge badge-primary">🎓 Student</span>`;
     let certTypeBadge = `<span style="font-size: 0.8rem; font-weight: 600; color: #1e40af;">📜 Participation</span>`;
+    const posText = c.position || c.designation || '';
 
     if (isApprec) {
-      const posText = c.position || c.designation || 'Winner';
-      roleBadge = `<span class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 700;">🏅 ${escapeHtml(posText)}</span>`;
+      const displayPos = posText || 'Winner';
+      roleBadge = `<span class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 700;">🏅 ${escapeHtml(displayPos)}</span>`;
       certTypeBadge = `<span style="font-size: 0.8rem; font-weight: 600; color: #047857;">📜 Appreciation</span>`;
     } else if (isCoord) {
       roleBadge = `<span class="badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⭐ ${escapeHtml(c.designation || 'Coordinator')}</span>`;
@@ -1956,7 +1957,14 @@ function renderEventCertificatesTable() {
           <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(c.student?.name || '-')}</div>
           ${c.student?.email ? `<span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(c.student.email)}</span>` : ''}
         </td>
-        <td>${roleBadge}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+            ${roleBadge}
+            <button class="btn btn-ghost btn-sm" onclick="openEditPositionModal('${c.participationId}', '${escapeHtml(c.student?.name || '')}', '${escapeHtml(c.student?.roll_no || '')}', '${escapeHtml(posText)}')" title="Change Position / Rank (e.g. 1st, 2nd, 3rd, 4th, 5th)" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: 1px dashed var(--surface-border); border-radius: 4px;">
+              ✏️ Rank
+            </button>
+          </div>
+        </td>
         <td>${certTypeBadge}</td>
         <td>
           <span style="font-size: 0.85rem;">${escapeHtml(c.student?.branch || 'CSE')}</span>
@@ -2327,9 +2335,10 @@ async function handleBulkFileInputChange(e) {
         const name = findVal(['name', 'student', 'coordinator', 'winner']);
         const branch = findVal(['branch', 'dept', 'department']) || 'CSE';
         const semester = findVal(['sem', 'year']) || 'IV Semester B.Tech';
-        const position = findVal(['position', 'prize', 'rank', 'award', 'place', 'medal']);
-        const designation = findVal(['designation', 'title']) || position || (isTargetCoord ? defaultDesig : isTargetApprec ? 'Winner' : 'Participant');
-        const role = findVal(['role', 'category', 'type']) || defaultRole;
+        const rawPos = findVal(['position', 'pos', 'prize', 'rank', 'award', 'place', 'medal', 'standing', 'secured', 'merit', 'achievement', 'result']);
+        const position = formatPositionClient(rawPos);
+        const designation = position || findVal(['designation', 'title']) || (isTargetCoord ? defaultDesig : isTargetApprec ? 'Winner' : 'Participant');
+        const role = findVal(['role', 'category', 'type']) || (position ? 'Winner' : defaultRole);
         const email = findVal(['email', 'mail']) || '';
 
         if (roll_no && name) {
@@ -2738,6 +2747,263 @@ async function revokeEventCertificate(participationId, name) {
     }
   } catch (err) {
     showToast('Revocation error: ' + err.message, 'error');
+  }
+}
+
+// Format numeric positions (e.g. 4, 5) to ordinals (4th, 5th)
+function formatPositionClient(val) {
+  if (val === null || val === undefined) return '';
+  let str = String(val).trim();
+  if (!str) return '';
+
+  // If pure number like 1, 2, 3, 4, 5, etc., convert to 1st, 2nd, 3rd, 4th, 5th
+  if (/^\d+$/.test(str)) {
+    const num = parseInt(str, 10);
+    const j = num % 10;
+    const k = num % 100;
+    if (j === 1 && k !== 11) return `${num}st`;
+    if (j === 2 && k !== 12) return `${num}nd`;
+    if (j === 3 && k !== 13) return `${num}rd`;
+    return `${num}th`;
+  }
+  return str;
+}
+
+// Open Edit Position Modal for single certificate
+function openEditPositionModal(partId, studentName, studentRoll, currentPos) {
+  const modal = document.getElementById('editPositionModal');
+  if (!modal) return;
+
+  document.getElementById('editPosParticipationId').value = partId;
+  document.getElementById('editPosStudentName').textContent = studentName || 'Student';
+  document.getElementById('editPosStudentRoll').textContent = studentRoll || '';
+
+  const select = document.getElementById('editPosSelect');
+  const customInput = document.getElementById('editPosCustomInput');
+  const formatted = formatPositionClient(currentPos) || '1st';
+
+  let found = false;
+  for (let i = 0; i < select.options.length; i++) {
+    if (select.options[i].value.toLowerCase() === formatted.toLowerCase()) {
+      select.selectedIndex = i;
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    select.value = '__custom__';
+    customInput.value = formatted;
+    customInput.style.display = 'block';
+  } else {
+    customInput.style.display = 'none';
+  }
+
+  modal.classList.add('active');
+}
+
+function closeEditPositionModal() {
+  const modal = document.getElementById('editPositionModal');
+  if (modal) modal.classList.remove('active');
+}
+
+function checkEditPosCustom(val) {
+  const customInput = document.getElementById('editPosCustomInput');
+  if (!customInput) return;
+  if (val === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+  }
+}
+
+// Save Position / Rank Modal submission
+async function handleSavePositionModal(e) {
+  e.preventDefault();
+  if (!currentEventCertEventId) {
+    showToast('No active event selected', 'error');
+    return;
+  }
+
+  const partId = document.getElementById('editPosParticipationId').value;
+  const select = document.getElementById('editPosSelect');
+  const customInput = document.getElementById('editPosCustomInput');
+
+  let pos = select.value === '__custom__' ? customInput.value.trim() : select.value;
+  pos = formatPositionClient(pos);
+
+  if (!pos) {
+    showToast('Please select or specify a position/rank', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('editPosSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Saving...';
+
+  try {
+    const { res, data } = await safeFetch(`/api/events/${currentEventCertEventId}/certificates/${partId}/position`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        position: pos,
+        designation: pos,
+        role: 'Winner',
+        certificate_type: 'Appreciation'
+      })
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = '💾 Save Position';
+
+    if (res.ok && data.success) {
+      showToast(data.message || `Position updated to "${pos}"!`, 'success');
+      closeEditPositionModal();
+      await loadEventCertificates(currentEventCertEventId);
+      loadStats();
+    } else {
+      showToast(data.message || 'Failed to update position', 'error');
+    }
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '💾 Save Position';
+    showToast('Position update error: ' + err.message, 'error');
+  }
+}
+
+// Export All Certificates for Current Event to an Excel File (.xlsx)
+async function exportCurrentEventCertificatesToExcel() {
+  if (!currentEventCertEventId) {
+    showToast('Please select an event before exporting', 'error');
+    return;
+  }
+
+  const activeEvent = eventsCache.find(e => e._id === currentEventCertEventId) || {};
+  const eventName = activeEvent.event_name || 'Event';
+
+  // Client-side export using currentEventCertsList if available
+  if (typeof XLSX !== 'undefined' && currentEventCertsList && currentEventCertsList.length > 0) {
+    try {
+      const rows = currentEventCertsList.map((c, idx) => {
+        const isApprec = c.isAppreciation || c.certificateType === 'Appreciation' || Boolean(c.position);
+        const isCoord = !isApprec && (c.isCoordinator || (c.role || '').toLowerCase().includes('coordinator'));
+
+        let category = 'Participation';
+        let positionVal = '';
+        if (isApprec) {
+          category = 'Appreciation';
+          positionVal = c.position || c.designation || 'Winner';
+        } else if (isCoord) {
+          category = 'Coordination';
+          positionVal = '';
+        }
+
+        return {
+          'S.No': idx + 1,
+          'Roll Number': c.student?.roll_no || '',
+          'Full Name': c.student?.name || '',
+          'Branch': c.student?.branch || 'CSE',
+          'Semester': c.student?.semester || 'IV Semester B.Tech',
+          'Category': category,
+          'Role': c.role || (isApprec ? 'Winner' : isCoord ? 'Coordinator' : 'Student'),
+          'Position / Rank': positionVal,
+          'Designation': c.designation || (isApprec ? positionVal : isCoord ? 'Student Coordinator' : 'Participant'),
+          'Certificate ID': c.certificateId || '',
+          'Issue Date': c.issueDate || '',
+          'Email': c.student?.email || ''
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 6 },
+        { wch: 16 },
+        { wch: 26 },
+        { wch: 14 },
+        { wch: 22 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 18 },
+        { wch: 24 },
+        { wch: 28 },
+        { wch: 16 },
+        { wch: 26 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      const safeSheet = eventName.substring(0, 31).replace(/[\\/?*[\]]/g, '') || 'Certificates';
+      XLSX.utils.book_append_sheet(wb, ws, safeSheet);
+
+      const fileName = `${eventName.replace(/[^a-zA-Z0-9_-]/g, '_')}_certificates.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      showToast(`Exported ${rows.length} certificate records to Excel!`, 'success');
+      return;
+    } catch (err) {
+      console.warn('Client Excel export failed, falling back to server download:', err);
+    }
+  }
+
+  // Server-side fallback
+  try {
+    const res = await fetch(`/api/events/${currentEventCertEventId}/export-excel`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('Server export failed');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${eventName.replace(/[^a-zA-Z0-9_-]/g, '_')}_certificates.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    showToast('Exported certificates to Excel successfully!', 'success');
+  } catch (err) {
+    showToast('Failed to export Excel: ' + err.message, 'error');
+  }
+}
+
+// Upload Excel to Batch Update Student Positions
+async function handleExcelPositionsUpload(e) {
+  const file = e.target.files ? e.target.files[0] : null;
+  if (!file) return;
+
+  if (!currentEventCertEventId) {
+    showToast('Please select an event before updating positions', 'error');
+    e.target.value = '';
+    return;
+  }
+
+  showToast(`Uploading ${file.name} to update positions...`, 'info');
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`/api/events/${currentEventCertEventId}/update-positions-excel`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: formData
+    });
+
+    const data = await res.json();
+    e.target.value = '';
+
+    if (res.ok && data.success) {
+      showToast(data.message || `Positions updated for ${data.updatedCount} students!`, 'success');
+      await loadEventCertificates(currentEventCertEventId);
+      loadStats();
+    } else {
+      showToast(data.message || 'Failed to update positions from Excel', 'error');
+    }
+  } catch (err) {
+    e.target.value = '';
+    showToast('Excel update error: ' + err.message, 'error');
   }
 }
 

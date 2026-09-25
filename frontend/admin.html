@@ -816,15 +816,38 @@
                       <label class="form-label" for="eventCertPosition">Position / Prize / Rank *</label>
                       <select id="eventCertPosition" class="form-control"
                         onchange="checkCustomPosition(this.value)">
-                        <option value="1st Prize">1st Prize</option>
-                        <option value="2nd Prize">2nd Prize</option>
-                        <option value="3rd Prize">3rd Prize</option>
-                        <option value="Winner">Winner</option>
-                        <option value="Runner-Up">Runner-Up</option>
-                        <option value="First Place">First Place</option>
-                        <option value="Second Place">Second Place</option>
-                        <option value="Consolation Prize">Consolation Prize</option>
-                        <option value="Special Merit">Special Merit</option>
+                        <optgroup label="Ordinals / Ranks (1st - 10th)">
+                          <option value="1st" selected>1st</option>
+                          <option value="2nd">2nd</option>
+                          <option value="3rd">3rd</option>
+                          <option value="4th">4th</option>
+                          <option value="5th">5th</option>
+                          <option value="6th">6th</option>
+                          <option value="7th">7th</option>
+                          <option value="8th">8th</option>
+                          <option value="9th">9th</option>
+                          <option value="10th">10th</option>
+                        </optgroup>
+                        <optgroup label="Rank Positions">
+                          <option value="1st Position">1st Position</option>
+                          <option value="2nd Position">2nd Position</option>
+                          <option value="3rd Position">3rd Position</option>
+                          <option value="4th Position">4th Position</option>
+                          <option value="5th Position">5th Position</option>
+                        </optgroup>
+                        <optgroup label="Prizes">
+                          <option value="1st Prize">1st Prize</option>
+                          <option value="2nd Prize">2nd Prize</option>
+                          <option value="3rd Prize">3rd Prize</option>
+                          <option value="4th Prize">4th Prize</option>
+                          <option value="5th Prize">5th Prize</option>
+                        </optgroup>
+                        <optgroup label="Titles">
+                          <option value="Winner">Winner</option>
+                          <option value="Runner-Up">Runner-Up</option>
+                          <option value="Consolation Prize">Consolation Prize</option>
+                          <option value="Special Merit">Special Merit</option>
+                        </optgroup>
                         <option value="__custom__">Custom Position / Prize...</option>
                       </select>
                       <input type="text" id="eventCertCustomPosition" class="form-control"
@@ -1057,7 +1080,17 @@
 
                 <input type="text" id="eventCertSearchInput" class="form-control" placeholder="Search Roll, Name..."
                   oninput="handleEventCertSearch(this.value)"
-                  style="width: 200px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+                  style="width: 180px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+
+                <div style="display: flex; gap: 0.4rem; align-items: center;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="exportCurrentEventCertificatesToExcel()" title="Export all certificates and positions to an Excel sheet (.xlsx)">
+                    📥 Export to Excel
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('excelUpdatePositionsInput').click()" title="Batch update positions from an Excel file" style="border-color: #10b981; color: #047857;">
+                    📊 Update Positions from Excel
+                  </button>
+                  <input type="file" id="excelUpdatePositionsInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleExcelPositionsUpload(event)">
+                </div>
               </div>
             </div>
 
@@ -1713,6 +1746,72 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeEditEventModal()">Cancel</button>
           <button type="submit" id="editEventSubmitBtn" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  <!-- EDIT CERTIFICATE POSITION / RANK MODAL -->
+  <div id="editPositionModal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🏅 Update Certificate Position / Rank</h3>
+        <button class="modal-close" onclick="closeEditPositionModal()">&times;</button>
+      </div>
+      <form onsubmit="handleSavePositionModal(event)">
+        <input type="hidden" id="editPosParticipationId">
+        <div class="modal-body" style="background: #fff; padding: 1.5rem; color: var(--text-main); align-items: stretch;">
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+            <div style="font-size: 0.8rem; color: #1e40af; font-weight: 600;">Student Recipient:</div>
+            <div id="editPosStudentName" style="font-weight: 800; font-size: 1.05rem; color: #1e3a8a;">-</div>
+            <div id="editPosStudentRoll" style="font-family: monospace; font-size: 0.85rem; color: #3b82f6;">-</div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="editPosSelect">Choose Position / Rank *</label>
+            <select id="editPosSelect" class="form-control" onchange="checkEditPosCustom(this.value)" style="font-weight: 600;">
+              <optgroup label="Ordinals / Ranks (1st - 10th)">
+                <option value="1st">1st</option>
+                <option value="2nd">2nd</option>
+                <option value="3rd">3rd</option>
+                <option value="4th">4th</option>
+                <option value="5th">5th</option>
+                <option value="6th">6th</option>
+                <option value="7th">7th</option>
+                <option value="8th">8th</option>
+                <option value="9th">9th</option>
+                <option value="10th">10th</option>
+              </optgroup>
+              <optgroup label="Rank Positions">
+                <option value="1st Position">1st Position</option>
+                <option value="2nd Position">2nd Position</option>
+                <option value="3rd Position">3rd Position</option>
+                <option value="4th Position">4th Position</option>
+                <option value="5th Position">5th Position</option>
+              </optgroup>
+              <optgroup label="Prizes">
+                <option value="1st Prize">1st Prize</option>
+                <option value="2nd Prize">2nd Prize</option>
+                <option value="3rd Prize">3rd Prize</option>
+                <option value="4th Prize">4th Prize</option>
+                <option value="5th Prize">5th Prize</option>
+              </optgroup>
+              <optgroup label="Titles">
+                <option value="Winner">Winner</option>
+                <option value="Runner-Up">Runner-Up</option>
+                <option value="Consolation Prize">Consolation Prize</option>
+                <option value="Special Merit">Special Merit</option>
+              </optgroup>
+              <option value="__custom__">Custom Position / Rank...</option>
+            </select>
+            <input type="text" id="editPosCustomInput" class="form-control" placeholder="Enter custom position/rank" style="display: none; margin-top: 0.5rem;">
+          </div>
+
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0;">
+            ℹ️ Setting an ordinal rank (e.g. <strong>4th</strong>, <strong>5th</strong>) automatically formats the certificate as a <strong>Certificate of Appreciation</strong> and prints cleanly on the template.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeEditPositionModal()">Cancel</button>
+          <button type="submit" id="editPosSubmitBtn" class="btn btn-success">💾 Save Position</button>
         </div>
       </form>
     </div>

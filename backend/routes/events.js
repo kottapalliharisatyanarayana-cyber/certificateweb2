@@ -8,6 +8,7 @@ const Student = require('../models/Student');
 const Participation = require('../models/Participation');
 const Template = require('../models/Template');
 const authMiddleware = require('../utils/authMiddleware');
+const { formatPosition } = require('../utils/excelParser');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -486,6 +487,7 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
 
     let studentsIssued = 0;
     let coordinatorsIssued = 0;
+    let appreciationIssued = 0;
     const errors = [];
     const issueDateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -497,8 +499,16 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
       }
 
       const rollUpper = rec.roll_no.trim().toUpperCase();
-      const role = rec.role || defaultRole;
-      const isCoord = role.toLowerCase().includes('coordinator');
+      const rawPos = rec.position || '';
+      const formattedPos = formatPosition(rawPos);
+      const isApprec = (rec.certificate_type === 'Appreciation') ||
+                       Boolean(formattedPos) ||
+                       (rec.role && (rec.role.toLowerCase().includes('winner') || rec.role.toLowerCase().includes('runner') || rec.role.toLowerCase().includes('prize') || rec.role.toLowerCase().includes('appreciation'))) ||
+                       (req.body.default_certificate_type === 'Appreciation') ||
+                       (defaultRole && (defaultRole.toLowerCase().includes('winner') || defaultRole.toLowerCase().includes('appreciation')));
+      const isCoord = !isApprec && ((rec.role && rec.role.toLowerCase().includes('coordinator')) || defaultRole.toLowerCase().includes('coordinator') || rec.certificate_type === 'Coordination');
+
+      const role = rec.role || (isApprec ? 'Winner' : isCoord ? 'Coordinator' : defaultRole);
 
       let student = await Student.findOne({ roll_no: rollUpper });
       if (student) {
@@ -524,9 +534,11 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
         .substring(0, 10)
         .toUpperCase();
 
-      const certId = `SVEC-${isCoord ? 'COORD' : 'PART'}-${hash}`;
-      const designation = isCoord ? (rec.designation || defaultDesignation) : 'Participant';
-      const certType = rec.certificate_type || (isCoord ? 'Coordination' : 'Participation');
+      const prefix = isApprec ? 'APPR' : (isCoord ? 'COORD' : 'PART');
+      const certId = `SVEC-${prefix}-${hash}`;
+      const finalPosition = isApprec ? (formattedPos || rec.designation || 'Winner') : '';
+      const designation = isApprec ? (formattedPos || rec.designation || 'Winner') : (isCoord ? (rec.designation || defaultDesignation) : 'Participant');
+      const certType = isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : (rec.certificate_type || 'Participation'));
 
       await Participation.findOneAndUpdate(
         { student: student._id, event: event._id },
@@ -534,6 +546,7 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
           participated: true,
           role,
           designation,
+          position: finalPosition,
           certificate_type: certType,
           certificate_id: certId,
           issue_date: issueDateStr
@@ -541,16 +554,18 @@ router.post('/:id/bulk-issue', authMiddleware, async (req, res) => {
         { upsert: true, new: true }
       );
 
-      if (isCoord) coordinatorsIssued++;
+      if (isApprec) appreciationIssued++;
+      else if (isCoord) coordinatorsIssued++;
       else studentsIssued++;
     }
 
     res.json({
       success: true,
-      message: `Batch issuance complete: ${studentsIssued} student certificates and ${coordinatorsIssued} coordinator certificates issued.`,
+      message: `Batch issuance complete: ${studentsIssued} student, ${appreciationIssued} appreciation, and ${coordinatorsIssued} coordinator certificates issued.`,
       summary: {
         totalProcessed: recipients.length,
         studentsIssued,
+        appreciationIssued,
         coordinatorsIssued,
         errors
       }
@@ -602,8 +617,16 @@ router.post('/:id/upload-bulk', authMiddleware, upload.single('file'), async (re
       const name = findVal(['name', 'student', 'coordinator']);
       const branch = findVal(['branch', 'dept', 'department']) || 'CSE';
       const semester = findVal(['sem', 'year']) || 'IV Semester B.Tech';
-      const designation = findVal(['designation', 'title']) || defaultDesignation;
-      const role = findVal(['role', 'category', 'type']) || defaultRole;
+      const rawPos = findVal(['position', 'pos', 'rank', 'prize', 'place', 'won', 'award', 'merit', 'standing', 'secured', 'achievement', 'result']);
+      const formattedPos = formatPosition(rawPos);
+      const isApprec = defaultRole.toLowerCase().includes('winner') || defaultRole.toLowerCase().includes('appreciation') || Boolean(formattedPos) || (req.body.default_certificate_type === 'Appreciation');
+      const isCoord = !isApprec && (defaultRole.toLowerCase().includes('coordinator') || (findVal(['role', 'category', 'type']) || '').toLowerCase().includes('coordinator'));
+
+      const role = findVal(['role', 'category', 'type']) || (isApprec ? 'Winner' : isCoord ? 'Coordinator' : defaultRole);
+      const designation = isCoord
+        ? (findVal(['designation', 'title']) || defaultDesignation)
+        : (isApprec ? (formattedPos || 'Winner') : 'Participant');
+      const certType = isApprec ? 'Appreciation' : (isCoord ? 'Coordination' : 'Participation');
       const email = findVal(['email', 'mail']) || '';
 
       if (roll_no && name) {
@@ -613,9 +636,10 @@ router.post('/:id/upload-bulk', authMiddleware, upload.single('file'), async (re
           branch,
           semester,
           designation,
+          position: isApprec ? (formattedPos || 'Winner') : '',
           role,
           email,
-          certificate_type: role.toLowerCase().includes('coordinator') ? 'Coordination' : 'Participation'
+          certificate_type: certType
         });
       }
     }
@@ -629,13 +653,14 @@ router.post('/:id/upload-bulk', authMiddleware, upload.single('file'), async (re
 
     let studentsIssued = 0;
     let coordinatorsIssued = 0;
+    let appreciationIssued = 0;
     const issueDateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     for (let i = 0; i < recipients.length; i++) {
       const rec = recipients[i];
       const rollUpper = rec.roll_no.trim().toUpperCase();
-      const role = rec.role || defaultRole;
-      const isCoord = role.toLowerCase().includes('coordinator');
+      const isApprec = rec.certificate_type === 'Appreciation' || Boolean(rec.position);
+      const isCoord = !isApprec && (rec.role.toLowerCase().includes('coordinator') || rec.certificate_type === 'Coordination');
 
       let student = await Student.findOne({ roll_no: rollUpper });
       if (student) {
@@ -661,33 +686,35 @@ router.post('/:id/upload-bulk', authMiddleware, upload.single('file'), async (re
         .substring(0, 10)
         .toUpperCase();
 
-      const certId = `SVEC-${isCoord ? 'COORD' : 'PART'}-${hash}`;
-      const designation = isCoord ? (rec.designation || defaultDesignation) : 'Participant';
-      const certType = rec.certificate_type || (isCoord ? 'Coordination' : 'Participation');
+      const prefix = isApprec ? 'APPR' : (isCoord ? 'COORD' : 'PART');
+      const certId = `SVEC-${prefix}-${hash}`;
 
       await Participation.findOneAndUpdate(
         { student: student._id, event: event._id },
         {
           participated: true,
-          role,
-          designation,
-          certificate_type: certType,
+          role: rec.role,
+          designation: rec.designation,
+          position: rec.position || '',
+          certificate_type: rec.certificate_type,
           certificate_id: certId,
           issue_date: issueDateStr
         },
         { upsert: true, new: true }
       );
 
-      if (isCoord) coordinatorsIssued++;
+      if (isApprec) appreciationIssued++;
+      else if (isCoord) coordinatorsIssued++;
       else studentsIssued++;
     }
 
     res.json({
       success: true,
-      message: `File processed: ${coordinatorsIssued} coordinator certificates and ${studentsIssued} student certificates issued.`,
+      message: `File processed: ${appreciationIssued} appreciation, ${coordinatorsIssued} coordinator, and ${studentsIssued} student certificates issued.`,
       summary: {
         totalRows: rawRows.length,
         totalIssued: recipients.length,
+        appreciationIssued,
         coordinatorsIssued,
         studentsIssued
       }
@@ -695,6 +722,190 @@ router.post('/:id/upload-bulk', authMiddleware, upload.single('file'), async (re
   } catch (err) {
     console.error('File bulk issue error:', err);
     res.status(500).json({ success: false, message: 'Failed to process file: ' + err.message });
+  }
+});
+
+// PUT /api/events/:id/certificates/:participationId/position (Admin: Update position / rank of a certificate)
+router.put('/:id/certificates/:participationId/position', authMiddleware, async (req, res) => {
+  try {
+    const { position, designation, role, certificate_type } = req.body;
+    const participation = await Participation.findOne({
+      _id: req.params.participationId,
+      event: req.params.id
+    }).populate('student', 'name roll_no');
+
+    if (!participation) {
+      return res.status(404).json({ success: false, message: 'Certificate record not found.' });
+    }
+
+    const posFormatted = formatPosition(position !== undefined ? position : participation.position);
+    participation.position = posFormatted;
+    participation.designation = posFormatted || designation || participation.designation || 'Winner';
+    if (role) participation.role = role;
+    if (certificate_type) participation.certificate_type = certificate_type;
+
+    await participation.save();
+
+    res.json({
+      success: true,
+      message: `Position updated to "${posFormatted}" for ${participation.student?.name || 'student'}.`,
+      participation: {
+        id: participation._id,
+        position: participation.position,
+        designation: participation.designation,
+        role: participation.role,
+        certificateType: participation.certificate_type
+      }
+    });
+  } catch (err) {
+    console.error('Update position error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update position: ' + err.message });
+  }
+});
+
+// POST /api/events/:id/update-positions-excel (Admin: Batch update positions/ranks from Excel spreadsheet)
+router.post('/:id/update-positions-excel', authMiddleware, upload.single('file'), async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please upload an Excel file.' });
+    }
+
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const rawRows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+
+    if (!rawRows || rawRows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Excel file has no data rows.' });
+    }
+
+    let updatedCount = 0;
+    const notFoundRolls = [];
+
+    for (const row of rawRows) {
+      const keys = Object.keys(row);
+      const findVal = (patterns) => {
+        const k = keys.find(key => patterns.some(p => key.trim().toLowerCase().includes(p)));
+        return k ? String(row[k]).trim() : '';
+      };
+
+      const roll_no = findVal(['roll', 'reg', 'ht', 'id', 'ticket']);
+      const posRaw = findVal(['position', 'pos', 'rank', 'prize', 'place', 'won', 'award', 'merit', 'standing', 'secured']);
+      const formattedPos = formatPosition(posRaw);
+
+      if (roll_no && formattedPos) {
+        const rollUpper = roll_no.toUpperCase();
+        const student = await Student.findOne({ roll_no: rollUpper });
+        if (student) {
+          const part = await Participation.findOne({ student: student._id, event: event._id });
+          if (part) {
+            part.position = formattedPos;
+            part.designation = formattedPos;
+            part.role = 'Winner';
+            part.certificate_type = 'Appreciation';
+            await part.save();
+            updatedCount++;
+          } else {
+            notFoundRolls.push(`${rollUpper} (not in event)`);
+          }
+        } else {
+          notFoundRolls.push(`${rollUpper} (student not found)`);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully updated positions for ${updatedCount} students!`,
+      updatedCount,
+      notFoundCount: notFoundRolls.length,
+      notFoundRolls: notFoundRolls.slice(0, 10)
+    });
+  } catch (err) {
+    console.error('Update positions excel error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update positions: ' + err.message });
+  }
+});
+
+// GET /api/events/:id/export-excel (Admin: Export all certificates and positions for an event to Excel)
+router.get('/:id/export-excel', authMiddleware, async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    const participations = await Participation.find({
+      event: event._id,
+      participated: true
+    }).populate('student').sort({ role: 1, createdAt: -1 }).lean();
+
+    const validCerts = participations.filter(p => p.student != null);
+
+    const rows = validCerts.map((p, idx) => {
+      const role = p.role || 'Student';
+      const isCoord = role.toLowerCase().includes('coordinator') || p.certificate_type === 'Coordination';
+      const isApprec = p.certificate_type === 'Appreciation' || Boolean(p.position) || role.toLowerCase().includes('winner') || role.toLowerCase().includes('runner');
+
+      let category = 'Participation';
+      let positionVal = '';
+      if (isApprec) {
+        category = 'Appreciation';
+        positionVal = p.position || p.designation || 'Winner';
+      } else if (isCoord) {
+        category = 'Coordination';
+        positionVal = '';
+      }
+
+      return {
+        'S.No': idx + 1,
+        'Roll Number': p.student.roll_no || '',
+        'Full Name': p.student.name || '',
+        'Branch': p.student.branch || 'CSE',
+        'Semester': p.student.semester || 'IV Semester B.Tech',
+        'Category': category,
+        'Role': role,
+        'Position / Rank': positionVal,
+        'Designation': p.designation || (isApprec ? positionVal : isCoord ? 'Student Coordinator' : 'Participant'),
+        'Certificate ID': p.certificate_id || '',
+        'Issue Date': p.issue_date || '',
+        'Email': p.student.email || ''
+      };
+    });
+
+    const ws = xlsx.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 6 },  // S.No
+      { wch: 16 }, // Roll Number
+      { wch: 26 }, // Full Name
+      { wch: 14 }, // Branch
+      { wch: 22 }, // Semester
+      { wch: 16 }, // Category
+      { wch: 16 }, // Role
+      { wch: 18 }, // Position / Rank
+      { wch: 24 }, // Designation
+      { wch: 28 }, // Certificate ID
+      { wch: 16 }, // Issue Date
+      { wch: 26 }  // Email
+    ];
+
+    const wb = xlsx.utils.book_new();
+    const safeSheetName = (event.event_name || 'Certificates').substring(0, 31).replace(/[\\/?*[\]]/g, '');
+    xlsx.utils.book_append_sheet(wb, ws, safeSheetName || 'Certificates');
+
+    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const safeFilename = `${(event.event_name || 'event').replace(/[^a-zA-Z0-9_-]/g, '_')}_certificates.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Export event excel error:', err);
+    res.status(500).json({ success: false, message: 'Failed to export excel: ' + err.message });
   }
 });
 

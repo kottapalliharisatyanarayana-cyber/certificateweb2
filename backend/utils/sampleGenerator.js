@@ -145,49 +145,49 @@ const generateSampleCoordinatorsExcel = () => {
 const generateSampleAppreciationExcel = () => {
   const data = [
     {
-      'Roll No': '21A81A4201',
-      'Name': 'K. Hari Satyanarayana',
-      'Branch': 'CSE (AIML)',
-      'Semester': 'IV',
-      'Position': '1st Prize',
-      'Event': 'Coding Contest (Nexus 2K26)',
-      'Email': 'hari.k@example.com'
-    },
-    {
-      'Roll No': '21A81A4202',
-      'Name': 'B. Sai Sneha',
+      'Roll No': '22A81A0501',
+      'Name': 'Aarav Sharma',
       'Branch': 'CSE',
-      'Semester': 'IV',
-      'Position': '2nd Prize',
-      'Event': 'Coding Contest (Nexus 2K26)',
-      'Email': 'sai.sneha@example.com'
+      'Semester': 'IV Semester B.Tech',
+      'Position': '1st',
+      'Event': 'Nexus 2K26 - Technical Symposium',
+      'Email': 'aarav.sharma@example.com'
     },
     {
-      'Roll No': '21A81A4203',
-      'Name': 'V. Tarun Kumar',
+      'Roll No': '22A81A0502',
+      'Name': 'Bhavya Sri',
       'Branch': 'AIML',
-      'Semester': 'VI',
-      'Position': '1st Position',
-      'Event': 'Paper Presentation (Nexus 2K26)',
-      'Email': 'tarun.v@example.com'
+      'Semester': 'IV Semester B.Tech',
+      'Position': '2nd',
+      'Event': 'Nexus 2K26 - Technical Symposium',
+      'Email': 'bhavya.sri@example.com'
     },
     {
-      'Roll No': '21A81A4204',
-      'Name': 'P. Likitha Reddy',
-      'Branch': 'IT',
-      'Semester': 'IV',
-      'Position': 'Winner',
-      'Event': 'Web Design Challenge (Nexus 2K26)',
-      'Email': 'likitha.p@example.com'
-    },
-    {
-      'Roll No': '21A81A4205',
-      'Name': 'G. Akhil Chandra',
+      'Roll No': '22A81A0503',
+      'Name': 'Chaitanya Varma',
       'Branch': 'ECE',
-      'Semester': 'IV',
-      'Position': 'Runner-Up',
-      'Event': 'Web Design Challenge (Nexus 2K26)',
-      'Email': 'akhil.g@example.com'
+      'Semester': 'IV Semester B.Tech',
+      'Position': '3rd',
+      'Event': 'Nexus 2K26 - Technical Symposium',
+      'Email': 'chaitanya.v@example.com'
+    },
+    {
+      'Roll No': '22A81A0504',
+      'Name': 'Divya Jyothi',
+      'Branch': 'IT',
+      'Semester': 'IV Semester B.Tech',
+      'Position': '4th',
+      'Event': 'Nexus 2K26 - Technical Symposium',
+      'Email': 'divya.j@example.com'
+    },
+    {
+      'Roll No': '22A81A0505',
+      'Name': 'Eshwar Prasad',
+      'Branch': 'Mechanical',
+      'Semester': 'IV Semester B.Tech',
+      'Position': '5th',
+      'Event': 'Nexus 2K26 - Technical Symposium',
+      'Email': 'eshwar.p@example.com'
     }
   ];
 

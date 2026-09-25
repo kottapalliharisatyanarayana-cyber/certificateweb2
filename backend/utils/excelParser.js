@@ -6,19 +6,46 @@ const NAME_ALIASES = ['name', 'student name', 'full name', 'candidate name', 'pa
 const EMAIL_ALIASES = ['email', 'email id', 'email_id', 'mail', 'student email'];
 const SEM_ALIASES = ['semester', 'sem', 'year/sem', 'academic year'];
 const BRANCH_ALIASES = ['branch', 'department', 'dept', 'course'];
-const POSITION_ALIASES = ['position', 'pos', 'rank', 'prize', 'place', 'won', 'award', 'award/prize', 'won position', 'prize won', 'standing'];
+const POSITION_ALIASES = [
+  'position', 'pos', 'rank', 'prize', 'place', 'won', 'award', 'award/prize',
+  'won position', 'prize won', 'standing', 'secured', 'place won', 'merit',
+  'position secured', 'rank secured', 'achievement', 'result', 'category'
+];
 const EVENT_NAME_ALIASES = ['event', 'event name', 'event_name', 'competition', 'activity', 'contest'];
 
 const normalizeHeader = (header) => {
   return String(header || '').trim().toLowerCase().replace(/[\s_-]+/g, ' ');
 };
 
+const formatPosition = (val) => {
+  if (val === null || val === undefined) return '';
+  let str = String(val).trim();
+  if (!str) return '';
+
+  // If pure number like 1, 2, 3, 4, 5, etc., convert to 1st, 2nd, 3rd, 4th, 5th
+  if (/^\d+$/.test(str)) {
+    const num = parseInt(str, 10);
+    const j = num % 10;
+    const k = num % 100;
+    if (j === 1 && k !== 11) return `${num}st`;
+    if (j === 2 && k !== 12) return `${num}nd`;
+    if (j === 3 && k !== 13) return `${num}rd`;
+    return `${num}th`;
+  }
+
+  return str;
+};
+
 const isPositionValue = (val) => {
   if (val === null || val === undefined) return false;
   const str = String(val).trim().toLowerCase();
   if (!str) return false;
-  return /^(1st|2nd|3rd|4th|\d+(st|nd|rd|th)|first|second|third|winner|runner[\s-]?up|champion|1st prize|2nd prize|3rd prize|first prize|second prize|third prize)/i.test(str) ||
-         /(prize|place|position|rank|winner|runner)/i.test(str);
+  if (/^\d+$/.test(str)) {
+    const n = parseInt(str, 10);
+    return n >= 1 && n <= 100;
+  }
+  return /^(1st|2nd|3rd|4th|\d+(st|nd|rd|th)|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|winner|runner[\s-]?up|champion|consolation|merit)/i.test(str) ||
+         /(prize|place|position|rank|winner|runner|place won|standing)/i.test(str);
 };
 
 const isParticipatedValue = (val) => {
@@ -96,7 +123,7 @@ const parseExcelBuffer = (buffer) => {
     const rawEmail = emailKey ? String(row[emailKey] || '').trim() : '';
     const rawSem = semKey ? String(row[semKey] || '').trim() : '';
     const rawBranch = branchKey ? String(row[branchKey] || '').trim() : '';
-    const rawPos = positionKey ? String(row[positionKey] || '').trim() : '';
+    const rawPos = formatPosition(positionKey ? String(row[positionKey] || '').trim() : '');
 
     const errors = [];
 
@@ -186,5 +213,6 @@ const parseExcelBuffer = (buffer) => {
 module.exports = {
   parseExcelBuffer,
   isParticipatedValue,
-  isPositionValue
+  isPositionValue,
+  formatPosition
 };
