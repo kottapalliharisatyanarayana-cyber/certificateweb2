@@ -307,7 +307,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (template_name) template.template_name = template_name.trim();
     if (template_type) template.template_type = template_type;
     if (description !== undefined) template.description = description.trim();
-    if (fields_config) template.fields_config = fields_config;
+    if (fields_config) {
+      template.fields_config = fields_config;
+      template.markModified('fields_config');
+    }
 
     await template.save();
 

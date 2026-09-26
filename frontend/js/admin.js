@@ -163,8 +163,13 @@ function switchTab(tabId) {
   if (tabId === 'events') loadEvents();
   if (tabId === 'event-certs') initEventCertsTab();
   if (tabId === 'manual') renderManualEventsCheckboxes();
-  if (tabId === 'upload') populatePdfEventSelect();
-  if (tabId === 'template') drawStudioPreview();
+  if (tabId === 'template') {
+    if (!currentTemplate) {
+      loadTemplateStudio();
+    } else {
+      drawStudioPreview();
+    }
+  }
   if (tabId === 'credentials') {
     updateAdminDisplay();
     resetCredentialsForm();
@@ -1192,80 +1197,99 @@ async function drawStudioPreview() {
 
 // Save template coordinates
 async function saveTemplateCoordinates() {
-  if (!currentTemplate) return;
+  if (!currentTemplate) {
+    const selector = document.getElementById('studioTemplateSelector');
+    if (selector && selector.value) {
+      await loadTemplateStudio(selector.value);
+    } else {
+      await loadTemplateStudio();
+    }
+  }
+
+  if (!currentTemplate || !currentTemplate._id) {
+    showToast('No template selected or loaded. Please select or upload a template first.', 'error');
+    return;
+  }
 
   const isCoord = (currentTemplate.template_type === 'coordination');
   const isApprec = (currentTemplate.template_type === 'appreciation');
+  const existingCfg = currentTemplate.fields_config || {};
 
   const updatedConfig = {
-    canvas_width: 1024,
-    canvas_height: 682,
+    canvas_width: existingCfg.canvas_width || 1024,
+    canvas_height: existingCfg.canvas_height || 682,
     name: {
+      ...(existingCfg.name || {}),
       x: getInputValue('coord-name-x', 350),
       y: getInputValue('coord-name-y', 355),
       fontSize: getInputValue('coord-name-size', 20),
-      fontFamily: 'Playfair Display, serif',
-      fontWeight: 'bold',
-      color: '#1a1a2e',
-      align: 'left'
+      fontFamily: existingCfg.name?.fontFamily || 'Playfair Display, serif',
+      fontWeight: existingCfg.name?.fontWeight || 'bold',
+      color: existingCfg.name?.color || '#1a1a2e',
+      align: existingCfg.name?.align || 'left'
     },
     semester: {
+      ...(existingCfg.semester || {}),
       x: getInputValue('coord-semester-x', 125),
       y: getInputValue('coord-semester-y', 382),
       fontSize: getInputValue('coord-semester-size', 16),
-      fontFamily: 'Inter, sans-serif',
-      fontWeight: 'bold',
-      color: '#1a1a2e',
-      align: 'left'
+      fontFamily: existingCfg.semester?.fontFamily || 'Inter, sans-serif',
+      fontWeight: existingCfg.semester?.fontWeight || 'bold',
+      color: existingCfg.semester?.color || '#1a1a2e',
+      align: existingCfg.semester?.align || 'left'
     },
     branch: {
+      ...(existingCfg.branch || {}),
       x: getInputValue('coord-branch-x', 360),
       y: getInputValue('coord-branch-y', 382),
       fontSize: getInputValue('coord-branch-size', 16),
-      fontFamily: 'Inter, sans-serif',
-      fontWeight: 'bold',
-      color: '#1a1a2e',
-      align: 'left'
+      fontFamily: existingCfg.branch?.fontFamily || 'Inter, sans-serif',
+      fontWeight: existingCfg.branch?.fontWeight || 'bold',
+      color: existingCfg.branch?.color || '#1a1a2e',
+      align: existingCfg.branch?.align || 'left'
     },
     roll_no: {
+      ...(existingCfg.roll_no || {}),
       x: getInputValue('coord-roll-x', 690),
       y: getInputValue('coord-roll-y', 382),
       fontSize: getInputValue('coord-roll-size', 16),
-      fontFamily: 'Inter, sans-serif',
-      fontWeight: 'bold',
-      color: '#1a1a2e',
-      align: 'left'
+      fontFamily: existingCfg.roll_no?.fontFamily || 'Inter, sans-serif',
+      fontWeight: existingCfg.roll_no?.fontWeight || 'bold',
+      color: existingCfg.roll_no?.color || '#1a1a2e',
+      align: existingCfg.roll_no?.align || 'left'
     }
   };
 
   // Position is stored for appreciation templates
   if (isApprec) {
     updatedConfig.position = {
+      ...(existingCfg.position || {}),
       x: getInputValue('coord-position-x', 210),
       y: getInputValue('coord-position-y', 409),
       fontSize: getInputValue('coord-position-size', 17),
-      fontFamily: 'Inter, sans-serif',
-      fontWeight: 'bold',
-      color: '#7b1113',
-      align: 'left'
+      fontFamily: existingCfg.position?.fontFamily || 'Inter, sans-serif',
+      fontWeight: existingCfg.position?.fontWeight || 'bold',
+      color: existingCfg.position?.color || '#7b1113',
+      align: existingCfg.position?.align || 'left'
     };
   }
 
   // Events line is stored for participation and appreciation templates
   if (!isCoord) {
     updatedConfig.events = {
+      ...(existingCfg.events || {}),
       x: getInputValue('coord-events-x', 400),
       y: getInputValue('coord-events-y', 409),
       fontSize: getInputValue('coord-events-size', 16),
-      fontFamily: 'Inter, sans-serif',
-      fontWeight: 'bold',
-      color: isApprec ? '#1a1a2e' : '#7b1113',
-      align: 'left'
+      fontFamily: existingCfg.events?.fontFamily || 'Inter, sans-serif',
+      fontWeight: existingCfg.events?.fontWeight || 'bold',
+      color: existingCfg.events?.color || (isApprec ? '#1a1a2e' : '#7b1113'),
+      align: existingCfg.events?.align || 'left'
     };
   }
 
   try {
-    const res = await fetch(`/api/templates/${currentTemplate._id}`, {
+    const { res, data } = await safeFetch(`/api/templates/${currentTemplate._id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1274,10 +1298,10 @@ async function saveTemplateCoordinates() {
       body: JSON.stringify({ fields_config: updatedConfig })
     });
 
-    const data = await res.json();
     if (res.ok && data.success) {
       currentTemplate.fields_config = updatedConfig;
       showToast(`Coordinates saved for "${currentTemplate.template_name}"!`, 'success');
+      await drawStudioPreview();
       await loadTemplateLibrary();
     } else {
       showToast(data.message || 'Failed to save template coordinates', 'error');
